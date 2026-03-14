@@ -46,6 +46,20 @@ const ImportacoesPage: React.FC = () => {
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'done'>('upload');
   const [ignoreDuplicates, setIgnoreDuplicates] = useState(true);
   const [importResult, setImportResult] = useState<{ imported: number; duplicates: number; errors: number } | null>(null);
+  const [dateFormat, setDateFormat] = useState<DateFormatType>('DD/MM/YYYY');
+
+  // Load user's date format preference
+  useEffect(() => {
+    if (!user) return;
+    supabaseClient
+      .from('profiles')
+      .select('date_format')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.date_format) setDateFormat(data.date_format as DateFormatType);
+      });
+  }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
