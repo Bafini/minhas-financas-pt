@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchTransactions, fetchCategories, TransactionRow } from '@/lib/queries';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,7 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, X } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MacroGroup } from '@/lib/calculations';
 
@@ -52,6 +52,15 @@ const MovimentosPage: React.FC = () => {
   const [formCategory, setFormCategory] = useState('');
   const [formSubcategory, setFormSubcategory] = useState('');
   const [formMacroGroup, setFormMacroGroup] = useState<MacroGroup>('Despesas');
+
+  // Inline add row
+  const [inlineOpen, setInlineOpen] = useState(false);
+  const [inlineDate, setInlineDate] = useState(new Date().toISOString().split('T')[0]);
+  const [inlineMacroGroup, setInlineMacroGroup] = useState<MacroGroup>('Despesas');
+  const [inlineCategory, setInlineCategory] = useState('');
+  const [inlineSubcategory, setInlineSubcategory] = useState('');
+  const [inlineAmount, setInlineAmount] = useState('');
+  const [inlineNotes, setInlineNotes] = useState('');
 
   const pageSize = 50;
 
@@ -147,6 +156,35 @@ const MovimentosPage: React.FC = () => {
     }
   };
 
+  const handleInlineSave = async () => {
+    if (!user || !inlineAmount || !inlineDate) return;
+    const payload = {
+      user_id: user.id,
+      date: inlineDate,
+      amount: parseFloat(inlineAmount),
+      notes: inlineNotes || null,
+      category_id: inlineCategory || null,
+      subcategory_id: inlineSubcategory || null,
+      macro_group: inlineMacroGroup,
+    };
+    try {
+      const { error } = await supabase.from('transactions').insert(payload);
+      if (error) throw error;
+      toast.success('Movimento criado');
+      // Reset inline but keep it open for next entry
+      setInlineAmount('');
+      setInlineNotes('');
+      setInlineSubcategory('');
+      loadData();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const inlineCatOptions = categories.filter(c => c.group_type === inlineMacroGroup);
+  const inlineSelectedCat = categories.find(c => c.id === inlineCategory);
+  const inlineSubcats = inlineSelectedCat?.subcategories || [];
+
   const selectedCat = categories.find(c => c.id === formCategory);
   const subcats = selectedCat?.subcategories || [];
 
@@ -159,10 +197,16 @@ const MovimentosPage: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight">Movimentos</h1>
           <p className="text-sm text-muted-foreground">{count} transações encontradas</p>
         </div>
-        <Button onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Movimento
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setInlineOpen(!inlineOpen)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Rápido
+          </Button>
+          <Button onClick={openNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Movimento
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -213,6 +257,68 @@ const MovimentosPage: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {/* Inline add row */}
+            {inlineOpen && (
+              <TableRow className="bg-muted/30">
+                <TableCell>
+                  <Input type="date" value={inlineDate} onChange={e => setInlineDate(e.target.value)} className="h-8 text-sm w-[130px]" />
+                </TableCell>
+                <TableCell>
+                  <Select value={inlineMacroGroup} onValueChange={v => { setInlineMacroGroup(v as MacroGroup); setInlineCategory(''); setInlineSubcategory(''); }}>
+                    <SelectTrigger className="h-8 text-xs w-[120px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MACRO_GROUPS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Select value={inlineCategory} onValueChange={v => { setInlineCategory(v); setInlineSubcategory(''); }}>
+                    <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                    <SelectContent>
+                      {inlineCatOptions.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Select value={inlineSubcategory} onValueChange={setInlineSubcategory} disabled={inlineSubcats.length === 0}>
+                    <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue placeholder="Subcat." /></SelectTrigger>
+                    <SelectContent>
+                      {inlineSubcats.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={inlineAmount}
+                    onChange={e => setInlineAmount(e.target.value)}
+                    className="h-8 text-sm text-right w-[100px]"
+                    onKeyDown={e => { if (e.key === 'Enter') handleInlineSave(); }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    placeholder="Notas..."
+                    value={inlineNotes}
+                    onChange={e => setInlineNotes(e.target.value)}
+                    className="h-8 text-sm"
+                    onKeyDown={e => { if (e.key === 'Enter') handleInlineSave(); }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-income" onClick={handleInlineSave}>
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setInlineOpen(false)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
             {loading ? (
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
             ) : transactions.length === 0 ? (
