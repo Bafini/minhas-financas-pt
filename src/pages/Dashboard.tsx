@@ -30,9 +30,9 @@ const Dashboard: React.FC = () => {
     if (!user) return;
     setLoading(true);
     Promise.all([
-      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', user.id)
+      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', user.id).eq('is_duplicate', false)
         .gte('date', range.start).lte('date', range.end)),
-      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', user.id)
+      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', user.id).eq('is_duplicate', false)
         .gte('date', range.prevStart).lte('date', range.prevEnd)),
     ]).then(([ytd, ytdPrev]) => {
       setTransactions(ytd);

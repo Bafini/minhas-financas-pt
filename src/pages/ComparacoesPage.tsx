@@ -29,7 +29,7 @@ const ComparacoesPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     Promise.all([
-      fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)').eq('user_id', user.id).order('date')),
+      fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)').eq('user_id', user.id).eq('is_duplicate', false).eq('exclude_from_kpis', false).order('date')),
       supabase.from('categories').select('*, subcategories(*)').eq('user_id', user.id),
     ]).then(([tx, { data: cats }]) => {
       setAllTransactions(tx);
