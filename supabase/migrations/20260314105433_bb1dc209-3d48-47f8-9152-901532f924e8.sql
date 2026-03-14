@@ -1,0 +1,1 @@
+ALTER TABLE public.recurring_rules ADD COLUMN day_of_period integer DEFAULT 1;

@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchRecurringRules, fetchCategories } from '@/lib/queries';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/formatters';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,6 +46,7 @@ const RecorrenciasPage: React.FC = () => {
   const [formGroup, setFormGroup] = useState<MacroGroup>('Despesas');
   const [formCatId, setFormCatId] = useState('');
   const [formSubId, setFormSubId] = useState('');
+  const [formDay, setFormDay] = useState('1');
 
   const loadData = async () => {
     if (!user) return;
@@ -62,6 +63,7 @@ const RecorrenciasPage: React.FC = () => {
     setFormName(''); setFormAmount(''); setFormFreq('monthly');
     setFormStart(new Date().toISOString().split('T')[0]); setFormEnd('');
     setFormGroup('Despesas'); setFormCatId(''); setFormSubId('');
+    setFormDay('1');
     setDialogOpen(true);
   };
 
@@ -70,6 +72,7 @@ const RecorrenciasPage: React.FC = () => {
     setFormName(rule.name); setFormAmount(String(rule.amount)); setFormFreq(rule.frequency);
     setFormStart(rule.start_date); setFormEnd(rule.end_date || '');
     setFormGroup(rule.macro_group); setFormCatId(rule.category_id || ''); setFormSubId(rule.subcategory_id || '');
+    setFormDay(String(rule.day_of_period || 1));
     setDialogOpen(true);
   };
 
@@ -85,6 +88,7 @@ const RecorrenciasPage: React.FC = () => {
       macro_group: formGroup as MacroGroup,
       category_id: formCatId || null,
       subcategory_id: formSubId || null,
+      day_of_period: parseInt(formDay) || 1,
     };
     try {
       if (editing) {
@@ -113,7 +117,6 @@ const RecorrenciasPage: React.FC = () => {
 
   const generateOccurrences = async (rule: any) => {
     if (!user) return;
-    // Generate transactions from start_date to today
     const start = new Date(rule.start_date);
     const end = rule.end_date ? new Date(rule.end_date) : new Date();
     const txs: any[] = [];
@@ -149,6 +152,10 @@ const RecorrenciasPage: React.FC = () => {
   const filteredCats = categories.filter(c => c.group_type === formGroup);
   const selectedCat = categories.find(c => c.id === formCatId);
 
+  const dayLabel = formFreq === 'monthly' || formFreq === 'quarterly' ? 'Dia do mês' :
+    formFreq === 'weekly' ? 'Dia da semana (1-7)' :
+    formFreq === 'yearly' ? 'Dia do mês' : '';
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -172,7 +179,7 @@ const RecorrenciasPage: React.FC = () => {
               </div>
               <p className="text-lg font-bold financial-value">{formatCurrency(Number(rule.amount))}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {FREQUENCIES.find(f => f.value === rule.frequency)?.label} · Desde {rule.start_date}
+                {FREQUENCIES.find(f => f.value === rule.frequency)?.label} · Dia {rule.day_of_period || '—'} · Desde {rule.start_date}
               </p>
               {rule.categories?.name && (
                 <p className="text-xs text-muted-foreground">{rule.categories.name}{rule.subcategories?.name ? ` > ${rule.subcategories.name}` : ''}</p>
@@ -209,12 +216,20 @@ const RecorrenciasPage: React.FC = () => {
           <div className="space-y-4 pt-4">
             <div className="space-y-2"><Label>Nome</Label><Input value={formName} onChange={e => setFormName(e.target.value)} /></div>
             <div className="space-y-2"><Label>Valor (€)</Label><Input type="number" step="0.01" value={formAmount} onChange={e => setFormAmount(e.target.value)} /></div>
-            <div className="space-y-2">
-              <Label>Frequência</Label>
-              <Select value={formFreq} onValueChange={setFormFreq}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{FREQUENCIES.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Frequência</Label>
+                <Select value={formFreq} onValueChange={setFormFreq}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{FREQUENCIES.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              {formFreq !== 'daily' && (
+                <div className="space-y-2">
+                  <Label>{dayLabel}</Label>
+                  <Input type="number" min="1" max={formFreq === 'weekly' ? '7' : '31'} value={formDay} onChange={e => setFormDay(e.target.value)} />
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Grupo</Label>
