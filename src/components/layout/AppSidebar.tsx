@@ -36,6 +36,7 @@ import { usePrivacy } from '@/contexts/PrivacyContext';
 const mainNav = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { title: 'Movimentos', icon: ArrowLeftRight, path: '/movimentos' },
+  { title: 'Comparações', icon: BarChart3, path: '/comparacoes' },
 ];
 
 const groupNav = [
