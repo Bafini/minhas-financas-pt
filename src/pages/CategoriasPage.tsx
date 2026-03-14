@@ -40,9 +40,9 @@ const CategoriasPage: React.FC = () => {
   const loadCategories = async () => {
     if (!user) return;
     setLoading(true);
-    const [data, countData] = await Promise.all([
+    const [data, countRows] = await Promise.all([
       fetchCategories(user.id),
-      supabase.from('transactions').select('category_id, subcategory_id').eq('user_id', user.id),
+      fetchAllRows((s) => s.from('transactions').select('category_id, subcategory_id').eq('user_id', user.id)),
     ]);
     setCategories(data || []);
 
