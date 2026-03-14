@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line } from 'recharts';
 import { cn } from '@/lib/utils';
 
-const YEARS = [2022, 2023, 2024, 2025, 2026];
+const YEARS = [2021, 2022, 2023, 2024, 2025, 2026];
 
 const ComparacoesPage: React.FC = () => {
   const { user } = useAuth();
@@ -29,7 +29,7 @@ const ComparacoesPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     Promise.all([
-      fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)').eq('user_id', user.id).order('date')),
+      fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)').eq('user_id', user.id).eq('is_duplicate', false).eq('exclude_from_kpis', false).order('date')),
       supabase.from('categories').select('*, subcategories(*)').eq('user_id', user.id),
     ]).then(([tx, { data: cats }]) => {
       setAllTransactions(tx);

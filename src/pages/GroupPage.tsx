@@ -44,10 +44,10 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
     setLoading(true);
     Promise.all([
       fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)')
-        .eq('user_id', user.id).eq('macro_group', macroGroup)
+        .eq('user_id', user.id).eq('macro_group', macroGroup).eq('is_duplicate', false).eq('exclude_from_kpis', false)
         .gte('date', range.start).lte('date', range.end)),
       fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)')
-        .eq('user_id', user.id).eq('macro_group', macroGroup)
+        .eq('user_id', user.id).eq('macro_group', macroGroup).eq('is_duplicate', false).eq('exclude_from_kpis', false)
         .gte('date', range.prevStart).lte('date', range.prevEnd)),
       supabase.from('categories').select('*, subcategories(*)')
         .eq('user_id', user.id).eq('group_type', macroGroup),

@@ -18,7 +18,7 @@ interface PeriodFilterProps {
   onChange: (v: PeriodFilterState) => void;
 }
 
-const YEARS = [2022, 2023, 2024, 2025, 2026];
+const YEARS = [2021, 2022, 2023, 2024, 2025, 2026];
 
 export function getDateRange(state: PeriodFilterState): { start: string; end: string; prevStart: string; prevEnd: string } {
   const now = new Date();
