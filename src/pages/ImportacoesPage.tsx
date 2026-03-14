@@ -3,7 +3,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchCategories } from '@/lib/queries';
 import { parseDateByFormat, toISODate, DateFormatType } from '@/lib/formatters';
-import { supabase as supabaseClient } from '@/integrations/supabase/client';
 import Papa from 'papaparse';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { Upload, FileText, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,8 @@ function determineMacroGroup(categoryName: string): MacroGroup {
   return 'Despesas';
 }
 
+const BATCH_SIZE = 20;
+
 const ImportacoesPage: React.FC = () => {
   const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
@@ -47,11 +49,12 @@ const ImportacoesPage: React.FC = () => {
   const [ignoreDuplicates, setIgnoreDuplicates] = useState(true);
   const [importResult, setImportResult] = useState<{ imported: number; duplicates: number; errors: number } | null>(null);
   const [dateFormat, setDateFormat] = useState<DateFormatType>('DD/MM/YYYY');
+  const [importProgress, setImportProgress] = useState(0);
+  const [importTotal, setImportTotal] = useState(0);
 
-  // Load user's date format preference
   useEffect(() => {
     if (!user) return;
-    supabaseClient
+    supabase
       .from('profiles')
       .select('date_format')
       .eq('user_id', user.id)
@@ -85,7 +88,6 @@ const ImportacoesPage: React.FC = () => {
       return;
     }
 
-    // Parse rows
     const parsed: ParsedRow[] = (result.data as any[]).map((row, idx) => {
       const date = parseDateByFormat(row.data, dateFormat);
       const amount = parseFloat(String(row.valor).replace(',', '.').replace(/[^\d.\-]/g, ''));
@@ -108,7 +110,6 @@ const ImportacoesPage: React.FC = () => {
       };
     });
 
-    // Check duplicates
     const validRows = parsed.filter(r => !r.error);
     if (validRows.length > 0) {
       const { data: existing } = await supabase
@@ -117,9 +118,7 @@ const ImportacoesPage: React.FC = () => {
         .eq('user_id', user.id);
 
       if (existing) {
-        const existingSet = new Set(
-          existing.map(e => `${e.date}|${e.amount}|${e.notes || ''}`)
-        );
+        const existingSet = new Set(existing.map(e => `${e.date}|${e.amount}|${e.notes || ''}`));
         validRows.forEach(row => {
           const key = `${row.parsedDate}|${row.parsedAmount}|${row.notas}`;
           if (existingSet.has(key)) row.isDuplicate = true;
@@ -135,15 +134,9 @@ const ImportacoesPage: React.FC = () => {
     if (!user) return;
     setStep('importing');
 
-    // Create import record
     const { data: importRecord, error: importError } = await supabase
       .from('imports')
-      .insert({
-        user_id: user.id,
-        filename: file?.name || 'import.csv',
-        total_rows: rows.length,
-        status: 'processing',
-      })
+      .insert({ user_id: user.id, filename: file?.name || 'import.csv', total_rows: rows.length, status: 'processing' })
       .select()
       .single();
 
@@ -153,18 +146,18 @@ const ImportacoesPage: React.FC = () => {
       return;
     }
 
-    // Fetch existing categories
     const cats = await fetchCategories(user.id);
+    const toImport = rows.filter(r => !r.error && !(r.isDuplicate && ignoreDuplicates));
+    setImportTotal(toImport.length);
+    setImportProgress(0);
 
     let imported = 0;
-    let duplicates = 0;
-    let errors = 0;
+    let duplicates = rows.filter(r => r.isDuplicate && ignoreDuplicates).length;
+    let errors = rows.filter(r => r.error).length;
 
-    for (const row of rows) {
-      if (row.error) { errors++; continue; }
-      if (row.isDuplicate && ignoreDuplicates) { duplicates++; continue; }
+    for (let i = 0; i < toImport.length; i++) {
+      const row = toImport[i];
 
-      // Find or create category
       let categoryId: string | null = null;
       let subcategoryId: string | null = null;
 
@@ -174,12 +167,8 @@ const ImportacoesPage: React.FC = () => {
           const { data: newCat } = await supabase
             .from('categories')
             .insert({ user_id: user.id, name: row.categoria, group_type: row.macroGroup })
-            .select()
-            .single();
-          if (newCat) {
-            cat = { ...newCat, subcategories: [] };
-            cats?.push(cat);
-          }
+            .select().single();
+          if (newCat) { cat = { ...newCat, subcategories: [] }; cats?.push(cat); }
         }
         if (cat) {
           categoryId = cat.id;
@@ -189,12 +178,8 @@ const ImportacoesPage: React.FC = () => {
               const { data: newSub } = await supabase
                 .from('subcategories')
                 .insert({ category_id: cat.id, user_id: user.id, name: row.subcategoria })
-                .select()
-                .single();
-              if (newSub) {
-                subcat = newSub;
-                cat.subcategories?.push(subcat);
-              }
+                .select().single();
+              if (newSub) { subcat = newSub; cat.subcategories?.push(subcat); }
             }
             if (subcat) subcategoryId = subcat.id;
           }
@@ -213,15 +198,14 @@ const ImportacoesPage: React.FC = () => {
         is_duplicate: row.isDuplicate,
       });
 
-      if (error) { errors++; } else { imported++; }
+      if (error) errors++;
+      else imported++;
+
+      setImportProgress(i + 1);
     }
 
-    // Update import record
     await supabase.from('imports').update({
-      imported_rows: imported,
-      duplicate_rows: duplicates,
-      error_rows: errors,
-      status: 'completed',
+      imported_rows: imported, duplicate_rows: duplicates, error_rows: errors, status: 'completed',
     }).eq('id', importRecord.id);
 
     setImportResult({ imported, duplicates, errors });
@@ -232,6 +216,7 @@ const ImportacoesPage: React.FC = () => {
   const duplicateCount = rows.filter(r => r.isDuplicate).length;
   const errorCount = rows.filter(r => r.error).length;
   const validCount = rows.filter(r => !r.error && !(r.isDuplicate && ignoreDuplicates)).length;
+  const progressPercent = importTotal > 0 ? Math.round((importProgress / importTotal) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -275,9 +260,7 @@ const ImportacoesPage: React.FC = () => {
                 {duplicateCount} duplicados
               </Badge>
             )}
-            {errorCount > 0 && (
-              <Badge variant="destructive">{errorCount} erros</Badge>
-            )}
+            {errorCount > 0 && <Badge variant="destructive">{errorCount} erros</Badge>}
             <div className="ml-auto flex items-center gap-2">
               <Switch checked={ignoreDuplicates} onCheckedChange={setIgnoreDuplicates} id="ignore-dup" />
               <Label htmlFor="ignore-dup" className="text-sm">Ignorar duplicados</Label>
@@ -300,13 +283,7 @@ const ImportacoesPage: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {rows.map(row => (
-                    <TableRow
-                      key={row.rowNum}
-                      className={cn(
-                        row.error && 'bg-destructive/5',
-                        row.isDuplicate && !row.error && 'bg-warning-muted'
-                      )}
-                    >
+                    <TableRow key={row.rowNum} className={cn(row.error && 'bg-destructive/5', row.isDuplicate && !row.error && 'bg-warning-muted')}>
                       <TableCell className="text-xs text-muted-foreground">{row.rowNum}</TableCell>
                       <TableCell className="tabular-nums text-sm">{row.data}</TableCell>
                       <TableCell className="text-sm">{row.categoria}</TableCell>
@@ -343,9 +320,17 @@ const ImportacoesPage: React.FC = () => {
 
       {step === 'importing' && (
         <Card className="glass-surface">
-          <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <span className="ml-3 text-muted-foreground">A importar movimentos...</span>
+          <CardContent className="space-y-4 py-12">
+            <div className="flex items-center justify-center gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="text-muted-foreground">A importar movimentos...</span>
+            </div>
+            <div className="mx-auto max-w-md space-y-2">
+              <Progress value={progressPercent} className="h-3" />
+              <p className="text-center text-sm tabular-nums text-muted-foreground">
+                {importProgress} / {importTotal} ({progressPercent}%)
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
