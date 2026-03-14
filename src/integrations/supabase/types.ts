@@ -243,6 +243,7 @@ export type Database = {
           amount: number
           category_id: string | null
           created_at: string | null
+          day_of_period: number | null
           end_date: string | null
           frequency: Database["public"]["Enums"]["frequency_type"]
           id: string
@@ -259,6 +260,7 @@ export type Database = {
           amount: number
           category_id?: string | null
           created_at?: string | null
+          day_of_period?: number | null
           end_date?: string | null
           frequency: Database["public"]["Enums"]["frequency_type"]
           id?: string
@@ -275,6 +277,7 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string | null
+          day_of_period?: number | null
           end_date?: string | null
           frequency?: Database["public"]["Enums"]["frequency_type"]
           id?: string
