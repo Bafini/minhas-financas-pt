@@ -14,7 +14,444 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      budgets: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string | null
+          id: string
+          month: number
+          subcategory_id: string | null
+          updated_at: string | null
+          user_id: string
+          year: number
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          month: number
+          subcategory_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          year: number
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          month?: number
+          subcategory_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          created_at: string | null
+          group_type: Database["public"]["Enums"]["macro_group"]
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          group_type: Database["public"]["Enums"]["macro_group"]
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          group_type?: Database["public"]["Enums"]["macro_group"]
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      event_labels: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      import_rows: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          import_id: string
+          is_duplicate: boolean | null
+          raw_data: Json
+          row_number: number
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          import_id: string
+          is_duplicate?: boolean | null
+          raw_data: Json
+          row_number: number
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          import_id?: string
+          is_duplicate?: boolean | null
+          raw_data?: Json
+          row_number?: number
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_rows_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imports: {
+        Row: {
+          created_at: string | null
+          duplicate_rows: number | null
+          error_rows: number | null
+          filename: string
+          id: string
+          imported_rows: number | null
+          status: string | null
+          total_rows: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duplicate_rows?: number | null
+          error_rows?: number | null
+          filename: string
+          id?: string
+          imported_rows?: number | null
+          status?: string | null
+          total_rows?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duplicate_rows?: number | null
+          error_rows?: number | null
+          filename?: string
+          id?: string
+          imported_rows?: number | null
+          status?: string | null
+          total_rows?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          currency: string | null
+          display_name: string | null
+          id: string
+          locale: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          currency?: string | null
+          display_name?: string | null
+          id?: string
+          locale?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          currency?: string | null
+          display_name?: string | null
+          id?: string
+          locale?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recurring_rules: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string | null
+          end_date: string | null
+          frequency: Database["public"]["Enums"]["frequency_type"]
+          id: string
+          is_active: boolean | null
+          macro_group: Database["public"]["Enums"]["macro_group"]
+          name: string
+          notes: string | null
+          start_date: string
+          subcategory_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          frequency: Database["public"]["Enums"]["frequency_type"]
+          id?: string
+          is_active?: boolean | null
+          macro_group: Database["public"]["Enums"]["macro_group"]
+          name: string
+          notes?: string | null
+          start_date: string
+          subcategory_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          frequency?: Database["public"]["Enums"]["frequency_type"]
+          id?: string
+          is_active?: boolean | null
+          macro_group?: Database["public"]["Enums"]["macro_group"]
+          name?: string
+          notes?: string | null
+          start_date?: string
+          subcategory_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_rules_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_filters: {
+        Row: {
+          created_at: string | null
+          filter_config: Json
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          filter_config: Json
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          filter_config?: Json
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subcategories: {
+        Row: {
+          category_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string | null
+          date: string
+          event_label: string | null
+          exclude_from_kpis: boolean | null
+          id: string
+          import_id: string | null
+          is_duplicate: boolean | null
+          is_extraordinary: boolean | null
+          is_recurring: boolean | null
+          macro_group: Database["public"]["Enums"]["macro_group"]
+          notes: string | null
+          recurring_rule_id: string | null
+          subcategory_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string | null
+          date: string
+          event_label?: string | null
+          exclude_from_kpis?: boolean | null
+          id?: string
+          import_id?: string | null
+          is_duplicate?: boolean | null
+          is_extraordinary?: boolean | null
+          is_recurring?: boolean | null
+          macro_group: Database["public"]["Enums"]["macro_group"]
+          notes?: string | null
+          recurring_rule_id?: string | null
+          subcategory_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string | null
+          date?: string
+          event_label?: string | null
+          exclude_from_kpis?: boolean | null
+          id?: string
+          import_id?: string | null
+          is_duplicate?: boolean | null
+          is_extraordinary?: boolean | null
+          is_recurring?: boolean | null
+          macro_group?: Database["public"]["Enums"]["macro_group"]
+          notes?: string | null
+          recurring_rule_id?: string | null
+          subcategory_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_recurring_rule_id_fkey"
+            columns: ["recurring_rule_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +460,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      frequency_type: "daily" | "weekly" | "monthly" | "quarterly" | "yearly"
+      macro_group: "Rendimentos" | "Investimentos" | "Despesas"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +588,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      frequency_type: ["daily", "weekly", "monthly", "quarterly", "yearly"],
+      macro_group: ["Rendimentos", "Investimentos", "Despesas"],
+    },
   },
 } as const
