@@ -16,6 +16,7 @@ import RecorrenciasPage from "./pages/RecorrenciasPage";
 import EventosPage from "./pages/EventosPage";
 import DefinicoesPage from "./pages/DefinicoesPage";
 import { RendimentosPage, DespesasPage, InvestimentosPage } from "./pages/GroupPage";
+import ComparacoesPage from "./pages/ComparacoesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
