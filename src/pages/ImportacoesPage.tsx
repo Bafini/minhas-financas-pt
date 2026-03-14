@@ -87,7 +87,7 @@ const ImportacoesPage: React.FC = () => {
 
     // Parse rows
     const parsed: ParsedRow[] = (result.data as any[]).map((row, idx) => {
-      const date = parsePTDate(row.data);
+      const date = parseDateByFormat(row.data, dateFormat);
       const amount = parseFloat(String(row.valor).replace(',', '.').replace(/[^\d.\-]/g, ''));
       let error: string | null = null;
       if (!date) error = 'Data inválida';
