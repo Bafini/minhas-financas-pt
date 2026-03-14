@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 interface GroupPageProps {
   macroGroup: MacroGroup;
   title: string;
-  icon: React.ElementType;
+  icon: React.FC<any>;
   variant: 'income' | 'expense' | 'investment';
 }
 
