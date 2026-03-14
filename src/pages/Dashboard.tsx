@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllRows } from '@/lib/supabaseHelpers';
 import { calculateSummary } from '@/lib/calculations';
 import { formatCurrency, getMonthName } from '@/lib/formatters';
 import KPICard from '@/components/finance/KPICard';
