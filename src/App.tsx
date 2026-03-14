@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { PrivacyProvider } from "@/contexts/PrivacyContext";
 import AuthPage from "./pages/AuthPage";
 import AppLayout from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
@@ -15,6 +16,7 @@ import RecorrenciasPage from "./pages/RecorrenciasPage";
 import EventosPage from "./pages/EventosPage";
 import DefinicoesPage from "./pages/DefinicoesPage";
 import { RendimentosPage, DespesasPage, InvestimentosPage } from "./pages/GroupPage";
+import ComparacoesPage from "./pages/ComparacoesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +38,7 @@ const AuthRoute = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <PrivacyProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -45,6 +48,7 @@ const App = () => (
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/movimentos" element={<MovimentosPage />} />
+              <Route path="/comparacoes" element={<ComparacoesPage />} />
               <Route path="/rendimentos" element={<RendimentosPage />} />
               <Route path="/despesas" element={<DespesasPage />} />
               <Route path="/investimentos" element={<InvestimentosPage />} />
@@ -59,6 +63,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </PrivacyProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

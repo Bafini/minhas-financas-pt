@@ -13,7 +13,7 @@ export async function fetchAllRows<T = any>(
   let hasMore = true;
 
   while (hasMore) {
-    const { data, error } = await buildQuery(supabase).range(from, from + PAGE_SIZE - 1);
+    const { data, error } = await buildQuery(supabase).order('id').range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;
     allData = allData.concat(data);

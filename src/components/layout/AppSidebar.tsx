@@ -26,12 +26,17 @@ import {
   Upload,
   Settings,
   LogOut,
+  BarChart3,
+  EyeOff,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 
 const mainNav = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { title: 'Movimentos', icon: ArrowLeftRight, path: '/movimentos' },
+  { title: 'Comparações', icon: BarChart3, path: '/comparacoes' },
 ];
 
 const groupNav = [
@@ -51,6 +56,7 @@ const manageNav = [
 
 const AppSidebar: React.FC = () => {
   const { signOut } = useAuth();
+  const { hidden, toggle } = usePrivacy();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -118,7 +124,11 @@ const AppSidebar: React.FC = () => {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 space-y-1">
+        <Button variant="ghost" className="w-full justify-start" onClick={toggle}>
+          {hidden ? <Eye className="mr-2 h-4 w-4" /> : <EyeOff className="mr-2 h-4 w-4" />}
+          {hidden ? 'Mostrar Valores' : 'Esconder Valores'}
+        </Button>
         <Button variant="ghost" className="w-full justify-start" onClick={signOut}>
           <LogOut className="mr-2 h-4 w-4" />
           Terminar Sessão
