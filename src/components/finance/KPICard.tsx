@@ -9,7 +9,7 @@ interface KPICardProps {
   value: number;
   previousValue?: number;
   format?: 'currency' | 'percentage' | 'number';
-  icon?: LucideIcon;
+  icon?: React.ComponentType<any>;
   variant?: 'income' | 'expense' | 'investment' | 'neutral';
 }
 
