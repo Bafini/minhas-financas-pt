@@ -56,6 +56,7 @@ const manageNav = [
 
 const AppSidebar: React.FC = () => {
   const { signOut } = useAuth();
+  const { hidden, toggle } = usePrivacy();
   const navigate = useNavigate();
   const location = useLocation();
 
