@@ -43,17 +43,17 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
     if (!user) return;
     setLoading(true);
     Promise.all([
-      supabase.from('transactions').select('*, categories(name), subcategories(name)')
+      fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)')
         .eq('user_id', user.id).eq('macro_group', macroGroup)
-        .gte('date', range.start).lte('date', range.end),
-      supabase.from('transactions').select('*, categories(name), subcategories(name)')
+        .gte('date', range.start).lte('date', range.end)),
+      fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)')
         .eq('user_id', user.id).eq('macro_group', macroGroup)
-        .gte('date', range.prevStart).lte('date', range.prevEnd),
+        .gte('date', range.prevStart).lte('date', range.prevEnd)),
       supabase.from('categories').select('*, subcategories(*)')
         .eq('user_id', user.id).eq('group_type', macroGroup),
-    ]).then(([{ data: current }, { data: prev }, { data: cats }]) => {
-      setTransactions(current || []);
-      setPrevTransactions(prev || []);
+    ]).then(([current, prev, { data: cats }]) => {
+      setTransactions(current);
+      setPrevTransactions(prev);
       setCategories(cats || []);
       setLoading(false);
     });

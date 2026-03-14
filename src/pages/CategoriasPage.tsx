@@ -48,7 +48,7 @@ const CategoriasPage: React.FC = () => {
 
     // Count transactions per category and subcategory
     const counts: Record<string, number> = {};
-    (countData.data || []).forEach((t: any) => {
+    countRows.forEach((t: any) => {
       if (t.category_id) counts[`cat_${t.category_id}`] = (counts[`cat_${t.category_id}`] || 0) + 1;
       if (t.subcategory_id) counts[`sub_${t.subcategory_id}`] = (counts[`sub_${t.subcategory_id}`] || 0) + 1;
     });

@@ -30,13 +30,13 @@ const Dashboard: React.FC = () => {
     if (!user) return;
     setLoading(true);
     Promise.all([
-      supabase.from('transactions').select('*').eq('user_id', user.id)
-        .gte('date', range.start).lte('date', range.end),
-      supabase.from('transactions').select('*').eq('user_id', user.id)
-        .gte('date', range.prevStart).lte('date', range.prevEnd),
-    ]).then(([{ data: ytd }, { data: ytdPrev }]) => {
-      setTransactions(ytd || []);
-      setPrevTransactions(ytdPrev || []);
+      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', user.id)
+        .gte('date', range.start).lte('date', range.end)),
+      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', user.id)
+        .gte('date', range.prevStart).lte('date', range.prevEnd)),
+    ]).then(([ytd, ytdPrev]) => {
+      setTransactions(ytd);
+      setPrevTransactions(ytdPrev);
       setLoading(false);
     });
   }, [user, range]);
