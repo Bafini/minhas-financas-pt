@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchCategories } from '@/lib/queries';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllRows } from '@/lib/supabaseHelpers';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,15 +40,15 @@ const CategoriasPage: React.FC = () => {
   const loadCategories = async () => {
     if (!user) return;
     setLoading(true);
-    const [data, countData] = await Promise.all([
+    const [data, countRows] = await Promise.all([
       fetchCategories(user.id),
-      supabase.from('transactions').select('category_id, subcategory_id').eq('user_id', user.id),
+      fetchAllRows((s) => s.from('transactions').select('category_id, subcategory_id').eq('user_id', user.id)),
     ]);
     setCategories(data || []);
 
     // Count transactions per category and subcategory
     const counts: Record<string, number> = {};
-    (countData.data || []).forEach((t: any) => {
+    countRows.forEach((t: any) => {
       if (t.category_id) counts[`cat_${t.category_id}`] = (counts[`cat_${t.category_id}`] || 0) + 1;
       if (t.subcategory_id) counts[`sub_${t.subcategory_id}`] = (counts[`sub_${t.subcategory_id}`] || 0) + 1;
     });
