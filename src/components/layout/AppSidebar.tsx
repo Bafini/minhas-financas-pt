@@ -26,8 +26,12 @@ import {
   Upload,
   Settings,
   LogOut,
+  BarChart3,
+  EyeOff,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 
 const mainNav = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
