@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchCategories } from '@/lib/queries';
-import { parsePTDate, toISODate } from '@/lib/formatters';
+import { parseDateByFormat, toISODate, DateFormatType } from '@/lib/formatters';
+import { supabase as supabaseClient } from '@/integrations/supabase/client';
 import Papa from 'papaparse';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,20 @@ const ImportacoesPage: React.FC = () => {
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'done'>('upload');
   const [ignoreDuplicates, setIgnoreDuplicates] = useState(true);
   const [importResult, setImportResult] = useState<{ imported: number; duplicates: number; errors: number } | null>(null);
+  const [dateFormat, setDateFormat] = useState<DateFormatType>('DD/MM/YYYY');
+
+  // Load user's date format preference
+  useEffect(() => {
+    if (!user) return;
+    supabaseClient
+      .from('profiles')
+      .select('date_format')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.date_format) setDateFormat(data.date_format as DateFormatType);
+      });
+  }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -72,7 +87,7 @@ const ImportacoesPage: React.FC = () => {
 
     // Parse rows
     const parsed: ParsedRow[] = (result.data as any[]).map((row, idx) => {
-      const date = parsePTDate(row.data);
+      const date = parseDateByFormat(row.data, dateFormat);
       const amount = parseFloat(String(row.valor).replace(',', '.').replace(/[^\d.\-]/g, ''));
       let error: string | null = null;
       if (!date) error = 'Data inválida';
@@ -114,7 +129,7 @@ const ImportacoesPage: React.FC = () => {
 
     setRows(parsed);
     setStep('preview');
-  }, [file, user]);
+  }, [file, user, dateFormat]);
 
   const handleImport = async () => {
     if (!user) return;

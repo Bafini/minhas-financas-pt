@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN date_format text NOT NULL DEFAULT 'DD/MM/YYYY';
