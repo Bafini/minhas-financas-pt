@@ -38,6 +38,7 @@ const AuthRoute = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <PrivacyProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
