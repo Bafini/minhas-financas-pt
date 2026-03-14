@@ -129,7 +129,7 @@ const ImportacoesPage: React.FC = () => {
 
     setRows(parsed);
     setStep('preview');
-  }, [file, user]);
+  }, [file, user, dateFormat]);
 
   const handleImport = async () => {
     if (!user) return;
