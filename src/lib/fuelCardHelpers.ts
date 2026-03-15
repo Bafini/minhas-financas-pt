@@ -68,17 +68,20 @@ export async function recalculateFuelCardIncome(
     // Sum fuel expenses for this card in this month
     const { data: expenses, error: expError } = await supabase
       .from('transactions')
-      .select('amount')
+      .select('amount, date')
       .eq('user_id', userId)
       .eq('fuel_card_id', card.id)
       .eq('macro_group', 'Despesas')
       .gte('date', effectiveStart)
-      .lte('date', endDate);
+      .lte('date', endDate)
+      .order('date', { ascending: false });
     
     if (expError) throw expError;
 
     const totalExpense = (expenses || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
     const recognizedIncome = Math.min(totalExpense, Number(card.monthly_limit));
+    // Use the date of the most recent expense for the income transaction
+    const latestExpenseDate = expenses && expenses.length > 0 ? expenses[0].date : endDate;
 
     // Find existing auto-generated income transaction for this card/month
     const { data: existingIncome, error: existError } = await supabase
@@ -104,7 +107,7 @@ export async function recalculateFuelCardIncome(
 
     const incomeTxData = {
       user_id: userId,
-      date: endDate, // Last day of the month
+      date: latestExpenseDate,
       amount: recognizedIncome,
       macro_group: 'Rendimentos' as const,
       category_id: card.subcategories.category_id,
@@ -117,7 +120,7 @@ export async function recalculateFuelCardIncome(
     if (existingIncome && existingIncome.length > 0) {
       const { error } = await supabase
         .from('transactions')
-        .update({ amount: recognizedIncome, date: endDate, notes: incomeTxData.notes })
+        .update({ amount: recognizedIncome, date: latestExpenseDate, notes: incomeTxData.notes })
         .eq('id', existingIncome[0].id);
       if (error) throw error;
     } else {
