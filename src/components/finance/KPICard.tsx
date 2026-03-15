@@ -22,6 +22,7 @@ const KPICard: React.FC<KPICardProps> = ({
   format = 'currency',
   icon: Icon,
   variant = 'neutral',
+  tooltip,
 }) => {
   const delta = previousValue !== undefined ? value - previousValue : undefined;
   const deltaPercentage = previousValue && previousValue !== 0
