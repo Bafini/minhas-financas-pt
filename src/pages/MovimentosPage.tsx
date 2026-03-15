@@ -460,7 +460,7 @@ const MovimentosPage: React.FC = () => {
             {showFormFuelCard && (
               <div className="space-y-2">
                 <Label>Cartão de Combustível</Label>
-                <Select value={formFuelCardId} onValueChange={setFormFuelCardId}>
+                <Select value={formFuelCardId || 'none'} onValueChange={v => setFormFuelCardId(v === 'none' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
