@@ -53,6 +53,7 @@ const MovimentosPage: React.FC = () => {
   const [formCategory, setFormCategory] = useState('');
   const [formSubcategory, setFormSubcategory] = useState('');
   const [formMacroGroup, setFormMacroGroup] = useState<MacroGroup>('Despesas');
+  const [formFuelCardId, setFormFuelCardId] = useState('');
 
   // Inline add row
   const [inlineOpen, setInlineOpen] = useState(false);
@@ -62,6 +63,10 @@ const MovimentosPage: React.FC = () => {
   const [inlineSubcategory, setInlineSubcategory] = useState('');
   const [inlineAmount, setInlineAmount] = useState('');
   const [inlineNotes, setInlineNotes] = useState('');
+  const [inlineFuelCardId, setInlineFuelCardId] = useState('');
+
+  // Fuel cards
+  const [fuelCards, setFuelCards] = useState<FuelCard[]>([]);
 
   const pageSize = 50;
 
