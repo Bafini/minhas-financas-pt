@@ -181,6 +181,7 @@ const MovimentosPage: React.FC = () => {
 
   const handleInlineSave = async () => {
     if (!user || !inlineAmount || !inlineDate) return;
+    const fuelCardIdValue = isFuelSubcategory(inlineSubcategory, inlineMacroGroup) && inlineFuelCardId ? inlineFuelCardId : null;
     const payload = {
       user_id: user.id,
       date: inlineDate,
@@ -189,6 +190,7 @@ const MovimentosPage: React.FC = () => {
       category_id: inlineCategory || null,
       subcategory_id: inlineSubcategory || null,
       macro_group: inlineMacroGroup,
+      fuel_card_id: fuelCardIdValue,
     };
     try {
       const { error } = await supabase.from('transactions').insert(payload);
