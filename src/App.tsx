@@ -9,7 +9,7 @@ import AuthPage from "./pages/AuthPage";
 import AppLayout from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import MovimentosPage from "./pages/MovimentosPage";
-import ImportacoesPage from "./pages/ImportacoesPage";
+import IntegracoesPage from "./pages/IntegracoesPage";
 import CategoriasPage from "./pages/CategoriasPage";
 import OrcamentosPage from "./pages/OrcamentosPage";
 import RecorrenciasPage from "./pages/RecorrenciasPage";
@@ -56,7 +56,7 @@ const App = () => (
               <Route path="/orcamentos" element={<OrcamentosPage />} />
               <Route path="/recorrencias" element={<RecorrenciasPage />} />
               <Route path="/eventos" element={<EventosPage />} />
-              <Route path="/importacoes" element={<ImportacoesPage />} />
+              <Route path="/integracoes" element={<IntegracoesPage />} />
               <Route path="/definicoes" element={<DefinicoesPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
