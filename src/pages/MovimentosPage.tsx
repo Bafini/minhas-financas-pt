@@ -211,14 +211,27 @@ const MovimentosPage: React.FC = () => {
     }
   };
 
+  // Helper: check if a subcategory name is "Combustível" under Despesas
+  const isFuelSubcategory = (subcatId: string, mg: string) => {
+    if (mg !== 'Despesas' || !subcatId) return false;
+    for (const cat of categories) {
+      if (cat.group_type !== 'Despesas') continue;
+      const sub = (cat.subcategories || []).find((s: any) => s.id === subcatId);
+      if (sub && sub.name.toLowerCase().includes('combustível')) return true;
+    }
+    return false;
+  };
+
+  const activeFuelCards = fuelCards.filter(fc => fc.is_active);
+
   const inlineCatOptions = categories.filter(c => c.group_type === inlineMacroGroup);
   const inlineSelectedCat = categories.find(c => c.id === inlineCategory);
   const inlineSubcats = inlineSelectedCat?.subcategories || [];
+  const showInlineFuelCard = isFuelSubcategory(inlineSubcategory, inlineMacroGroup);
 
   const selectedCat = categories.find(c => c.id === formCategory);
   const subcats = selectedCat?.subcategories || [];
-
-  const totalPages = Math.ceil(count / pageSize);
+  const showFormFuelCard = isFuelSubcategory(formSubcategory, formMacroGroup);
 
   return (
     <div className="space-y-6">
