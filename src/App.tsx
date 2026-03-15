@@ -9,7 +9,7 @@ import AuthPage from "./pages/AuthPage";
 import AppLayout from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import MovimentosPage from "./pages/MovimentosPage";
-import ImportacoesPage from "./pages/ImportacoesPage";
+import IntegracoesPage from "./pages/IntegracoesPage";
 import CategoriasPage from "./pages/CategoriasPage";
 import OrcamentosPage from "./pages/OrcamentosPage";
 import RecorrenciasPage from "./pages/RecorrenciasPage";
