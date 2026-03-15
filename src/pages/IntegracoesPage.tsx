@@ -184,8 +184,8 @@ const ImportTab: React.FC<{ userId: string; dateFormat: DateFormatType }> = ({ u
 
     const validRows = parsed.filter(r => !r.error);
     if (validRows.length > 0) {
-      const existing = await fetchAllRows(
-        supabase.from('transactions').select('date, amount, notes').eq('user_id', userId).order('id')
+      const existing = await fetchAllRows((sb) =>
+        sb.from('transactions').select('date, amount, notes').eq('user_id', userId).order('id')
       );
       if (existing) {
         const existingSet = new Set(existing.map((e: any) => `${e.date}|${e.amount}|${e.notes || ''}`));
