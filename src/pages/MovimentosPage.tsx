@@ -74,7 +74,7 @@ const MovimentosPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [txResult, cats] = await Promise.all([
+      const [txResult, cats, fc] = await Promise.all([
         fetchTransactions(user.id, {
           search: search || undefined,
           macroGroup: (macroGroup as MacroGroup) || undefined,
@@ -85,10 +85,12 @@ const MovimentosPage: React.FC = () => {
           pageSize,
         }),
         fetchCategories(user.id),
+        fetchFuelCards(user.id),
       ]);
       setTransactions(txResult.data);
       setCount(txResult.count);
       setCategories(cats || []);
+      setFuelCards(fc);
     } catch (err) {
       console.error(err);
     } finally {
