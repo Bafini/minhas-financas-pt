@@ -62,6 +62,9 @@ export async function recalculateFuelCardIncome(
     if (card.effective_from > endDate) continue;
     if (card.effective_to && card.effective_to < startDate) continue;
 
+    // Clamp start date to card's effective_from
+    const effectiveStart = card.effective_from > startDate ? card.effective_from : startDate;
+
     // Sum fuel expenses for this card in this month
     const { data: expenses, error: expError } = await supabase
       .from('transactions')
@@ -69,7 +72,7 @@ export async function recalculateFuelCardIncome(
       .eq('user_id', userId)
       .eq('fuel_card_id', card.id)
       .eq('macro_group', 'Despesas')
-      .gte('date', startDate)
+      .gte('date', effectiveStart)
       .lte('date', endDate);
     
     if (expError) throw expError;
