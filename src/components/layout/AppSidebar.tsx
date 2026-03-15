@@ -29,6 +29,7 @@ import {
   BarChart3,
   EyeOff,
   Eye,
+  Fuel,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePrivacy } from '@/contexts/PrivacyContext';
