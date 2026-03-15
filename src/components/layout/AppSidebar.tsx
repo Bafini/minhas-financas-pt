@@ -50,7 +50,7 @@ const manageNav = [
   { title: 'Orçamentos', icon: Target, path: '/orcamentos' },
   { title: 'Recorrências', icon: Repeat, path: '/recorrencias' },
   { title: 'Eventos', icon: Tag, path: '/eventos' },
-  { title: 'Importações', icon: Upload, path: '/importacoes' },
+  { title: 'Integrações', icon: Upload, path: '/integracoes' },
   { title: 'Definições', icon: Settings, path: '/definicoes' },
 ];
 
