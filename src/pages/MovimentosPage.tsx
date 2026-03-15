@@ -457,6 +457,20 @@ const MovimentosPage: React.FC = () => {
                 </Select>
               </div>
             )}
+            {showFormFuelCard && (
+              <div className="space-y-2">
+                <Label>Cartão de Combustível</Label>
+                <Select value={formFuelCardId} onValueChange={setFormFuelCardId}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {activeFuelCards.map(fc => (
+                      <SelectItem key={fc.id} value={fc.id}>{fc.card_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Valor (€)</Label>
               <Input type="number" step="0.01" value={formAmount} onChange={e => setFormAmount(e.target.value)} />
