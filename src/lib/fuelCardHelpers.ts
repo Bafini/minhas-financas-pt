@@ -107,7 +107,7 @@ export async function recalculateFuelCardIncome(
 
     const incomeTxData = {
       user_id: userId,
-      date: endDate, // Last day of the month
+      date: latestExpenseDate,
       amount: recognizedIncome,
       macro_group: 'Rendimentos' as const,
       category_id: card.subcategories.category_id,
@@ -120,7 +120,7 @@ export async function recalculateFuelCardIncome(
     if (existingIncome && existingIncome.length > 0) {
       const { error } = await supabase
         .from('transactions')
-        .update({ amount: recognizedIncome, date: endDate, notes: incomeTxData.notes })
+        .update({ amount: recognizedIncome, date: latestExpenseDate, notes: incomeTxData.notes })
         .eq('id', existingIncome[0].id);
       if (error) throw error;
     } else {
