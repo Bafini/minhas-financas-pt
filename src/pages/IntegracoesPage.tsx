@@ -54,21 +54,22 @@ const ExportTab: React.FC<{ userId: string; dateFormat: DateFormatType }> = ({ u
   const handleExport = async () => {
     setExporting(true);
     try {
-      let query = supabase
-        .from('transactions')
-        .select('date, amount, notes, macro_group, categories(name), subcategories(name)')
-        .eq('user_id', userId)
-        .order('date', { ascending: true });
+      const rows = await fetchAllRows((sb) => {
+        let q = sb
+          .from('transactions')
+          .select('date, amount, notes, macro_group, categories(name), subcategories(name)')
+          .eq('user_id', userId)
+          .order('date', { ascending: true });
 
-      if (macroFilter !== 'all') {
-        query = query.eq('macro_group', macroFilter);
-      }
-      if (yearFilter !== 'all') {
-        const y = parseInt(yearFilter);
-        query = query.gte('date', `${y}-01-01`).lte('date', `${y}-12-31`);
-      }
-
-      const rows = await fetchAllRows(query);
+        if (macroFilter !== 'all') {
+          q = q.eq('macro_group', macroFilter as MacroGroup);
+        }
+        if (yearFilter !== 'all') {
+          const y = parseInt(yearFilter);
+          q = q.gte('date', `${y}-01-01`).lte('date', `${y}-12-31`);
+        }
+        return q;
+      });
 
       if (!rows || rows.length === 0) {
         toast.error('Sem dados para exportar');
