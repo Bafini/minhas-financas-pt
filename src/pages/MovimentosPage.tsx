@@ -122,6 +122,7 @@ const MovimentosPage: React.FC = () => {
     setFormCategory('');
     setFormSubcategory('');
     setFormMacroGroup('Despesas');
+    setFormFuelCardId('');
     setSheetOpen(true);
   };
 
