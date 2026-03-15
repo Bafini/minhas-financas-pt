@@ -151,9 +151,9 @@ const MovimentosPage: React.FC = () => {
         toast.success('Movimento atualizado');
       }
       // Recalculate fuel card income for this month if a fuel card was involved
-      if (fuelCardIdValue || (editTx && (editTx as any).fuel_card_id)) {
+      if (fuelCardIdValue || (editTx && editTx.fuel_card_id)) {
         const d = new Date(formDate);
-        await recalculateFuelCardIncome(user.id, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue || (editTx as any).fuel_card_id);
+        await recalculateFuelCardIncome(user.id, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue || editTx!.fuel_card_id!);
       }
       setSheetOpen(false);
       loadData();
