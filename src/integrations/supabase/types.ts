@@ -122,6 +122,53 @@ export type Database = {
         }
         Relationships: []
       }
+      fuel_cards: {
+        Row: {
+          card_name: string
+          created_at: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          income_subcategory_id: string | null
+          is_active: boolean
+          monthly_limit: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          card_name: string
+          created_at?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          income_subcategory_id?: string | null
+          is_active?: boolean
+          monthly_limit: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          card_name?: string
+          created_at?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          income_subcategory_id?: string | null
+          is_active?: boolean
+          monthly_limit?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_cards_income_subcategory_id_fkey"
+            columns: ["income_subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       import_rows: {
         Row: {
           created_at: string | null
@@ -372,16 +419,19 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          auto_generated: boolean | null
           category_id: string | null
           created_at: string | null
           date: string
           event_label: string | null
           exclude_from_kpis: boolean | null
+          fuel_card_id: string | null
           id: string
           import_id: string | null
           is_duplicate: boolean | null
           is_extraordinary: boolean | null
           is_recurring: boolean | null
+          linked_transaction_id: string | null
           macro_group: Database["public"]["Enums"]["macro_group"]
           notes: string | null
           recurring_rule_id: string | null
@@ -391,16 +441,19 @@ export type Database = {
         }
         Insert: {
           amount: number
+          auto_generated?: boolean | null
           category_id?: string | null
           created_at?: string | null
           date: string
           event_label?: string | null
           exclude_from_kpis?: boolean | null
+          fuel_card_id?: string | null
           id?: string
           import_id?: string | null
           is_duplicate?: boolean | null
           is_extraordinary?: boolean | null
           is_recurring?: boolean | null
+          linked_transaction_id?: string | null
           macro_group: Database["public"]["Enums"]["macro_group"]
           notes?: string | null
           recurring_rule_id?: string | null
@@ -410,16 +463,19 @@ export type Database = {
         }
         Update: {
           amount?: number
+          auto_generated?: boolean | null
           category_id?: string | null
           created_at?: string | null
           date?: string
           event_label?: string | null
           exclude_from_kpis?: boolean | null
+          fuel_card_id?: string | null
           id?: string
           import_id?: string | null
           is_duplicate?: boolean | null
           is_extraordinary?: boolean | null
           is_recurring?: boolean | null
+          linked_transaction_id?: string | null
           macro_group?: Database["public"]["Enums"]["macro_group"]
           notes?: string | null
           recurring_rule_id?: string | null
@@ -436,10 +492,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_fuel_card_id_fkey"
+            columns: ["fuel_card_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_cards"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transactions_import_id_fkey"
             columns: ["import_id"]
             isOneToOne: false
             referencedRelation: "imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_linked_transaction_id_fkey"
+            columns: ["linked_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
           {
