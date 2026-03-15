@@ -168,6 +168,12 @@ const MovimentosPage: React.FC = () => {
     if (error) {
       toast.error(error.message);
     } else {
+      // Check if deleted tx had a fuel card — recalculate
+      const deletedTx = transactions.find(t => t.id === id);
+      if (deletedTx && (deletedTx as any).fuel_card_id) {
+        const d = new Date(deletedTx.date);
+        await recalculateFuelCardIncome(user!.id, d.getFullYear(), d.getMonth() + 1, (deletedTx as any).fuel_card_id);
+      }
       toast.success('Movimento eliminado');
       loadData();
     }
