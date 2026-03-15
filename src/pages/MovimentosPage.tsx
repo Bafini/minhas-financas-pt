@@ -128,6 +128,7 @@ const MovimentosPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!user) return;
+    const fuelCardIdValue = isFuelSubcategory(formSubcategory, formMacroGroup) && formFuelCardId ? formFuelCardId : null;
     const payload = {
       user_id: user.id,
       date: formDate,
@@ -136,6 +137,7 @@ const MovimentosPage: React.FC = () => {
       category_id: formCategory || null,
       subcategory_id: formSubcategory || null,
       macro_group: formMacroGroup as MacroGroup,
+      fuel_card_id: fuelCardIdValue,
     };
 
     try {
@@ -147,6 +149,11 @@ const MovimentosPage: React.FC = () => {
         const { error } = await supabase.from('transactions').update(payload).eq('id', editTx.id);
         if (error) throw error;
         toast.success('Movimento atualizado');
+      }
+      // Recalculate fuel card income for this month if a fuel card was involved
+      if (fuelCardIdValue || (editTx && (editTx as any).fuel_card_id)) {
+        const d = new Date(formDate);
+        await recalculateFuelCardIncome(user.id, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue || (editTx as any).fuel_card_id);
       }
       setSheetOpen(false);
       loadData();
