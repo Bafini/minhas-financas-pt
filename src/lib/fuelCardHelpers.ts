@@ -146,14 +146,21 @@ export async function getFuelCardMonthlySummary(
   const summaries = [];
 
   for (const card of cards || []) {
-    // Sum expenses
+    // Skip cards not effective for this month
+    if (card.effective_from > endDate) continue;
+    if (card.effective_to && card.effective_to < startDate) continue;
+
+    // Clamp start date to card's effective_from
+    const effectiveStart = card.effective_from > startDate ? card.effective_from : startDate;
+
+    // Sum expenses from effective start
     const { data: expenses } = await supabase
       .from('transactions')
       .select('amount')
       .eq('user_id', userId)
       .eq('fuel_card_id', card.id)
       .eq('macro_group', 'Despesas')
-      .gte('date', startDate)
+      .gte('date', effectiveStart)
       .lte('date', endDate);
 
     const totalSpent = (expenses || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
