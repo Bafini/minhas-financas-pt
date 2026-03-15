@@ -109,6 +109,7 @@ const MovimentosPage: React.FC = () => {
     setFormCategory(tx.category_id || '');
     setFormSubcategory(tx.subcategory_id || '');
     setFormMacroGroup(tx.macro_group);
+    setFormFuelCardId((tx as any).fuel_card_id || '');
     setSheetOpen(true);
   };
 
