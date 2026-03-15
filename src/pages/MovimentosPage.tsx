@@ -196,10 +196,15 @@ const MovimentosPage: React.FC = () => {
       const { error } = await supabase.from('transactions').insert(payload);
       if (error) throw error;
       toast.success('Movimento criado');
+      if (fuelCardIdValue) {
+        const d = new Date(inlineDate);
+        await recalculateFuelCardIncome(user.id, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue);
+      }
       // Reset inline but keep it open for next entry
       setInlineAmount('');
       setInlineNotes('');
       setInlineSubcategory('');
+      setInlineFuelCardId('');
       loadData();
     } catch (err: any) {
       toast.error(err.message);
