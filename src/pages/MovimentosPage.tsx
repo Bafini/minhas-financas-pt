@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchTransactions, fetchCategories, TransactionRow } from '@/lib/queries';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { fetchFuelCards, recalculateFuelCardIncome, FuelCard } from '@/lib/fuelCardHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,7 @@ const MovimentosPage: React.FC = () => {
   const [formCategory, setFormCategory] = useState('');
   const [formSubcategory, setFormSubcategory] = useState('');
   const [formMacroGroup, setFormMacroGroup] = useState<MacroGroup>('Despesas');
+  const [formFuelCardId, setFormFuelCardId] = useState('');
 
   // Inline add row
   const [inlineOpen, setInlineOpen] = useState(false);
@@ -61,6 +63,10 @@ const MovimentosPage: React.FC = () => {
   const [inlineSubcategory, setInlineSubcategory] = useState('');
   const [inlineAmount, setInlineAmount] = useState('');
   const [inlineNotes, setInlineNotes] = useState('');
+  const [inlineFuelCardId, setInlineFuelCardId] = useState('');
+
+  // Fuel cards
+  const [fuelCards, setFuelCards] = useState<FuelCard[]>([]);
 
   const pageSize = 50;
 
@@ -68,7 +74,7 @@ const MovimentosPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [txResult, cats] = await Promise.all([
+      const [txResult, cats, fc] = await Promise.all([
         fetchTransactions(user.id, {
           search: search || undefined,
           macroGroup: (macroGroup as MacroGroup) || undefined,
@@ -79,10 +85,12 @@ const MovimentosPage: React.FC = () => {
           pageSize,
         }),
         fetchCategories(user.id),
+        fetchFuelCards(user.id),
       ]);
       setTransactions(txResult.data);
       setCount(txResult.count);
       setCategories(cats || []);
+      setFuelCards(fc);
     } catch (err) {
       console.error(err);
     } finally {
@@ -101,6 +109,7 @@ const MovimentosPage: React.FC = () => {
     setFormCategory(tx.category_id || '');
     setFormSubcategory(tx.subcategory_id || '');
     setFormMacroGroup(tx.macro_group);
+    setFormFuelCardId(tx.fuel_card_id || '');
     setSheetOpen(true);
   };
 
@@ -113,11 +122,13 @@ const MovimentosPage: React.FC = () => {
     setFormCategory('');
     setFormSubcategory('');
     setFormMacroGroup('Despesas');
+    setFormFuelCardId('');
     setSheetOpen(true);
   };
 
   const handleSave = async () => {
     if (!user) return;
+    const fuelCardIdValue = isFuelSubcategory(formSubcategory, formMacroGroup) && formFuelCardId ? formFuelCardId : null;
     const payload = {
       user_id: user.id,
       date: formDate,
@@ -126,6 +137,7 @@ const MovimentosPage: React.FC = () => {
       category_id: formCategory || null,
       subcategory_id: formSubcategory || null,
       macro_group: formMacroGroup as MacroGroup,
+      fuel_card_id: fuelCardIdValue,
     };
 
     try {
@@ -137,6 +149,11 @@ const MovimentosPage: React.FC = () => {
         const { error } = await supabase.from('transactions').update(payload).eq('id', editTx.id);
         if (error) throw error;
         toast.success('Movimento atualizado');
+      }
+      // Recalculate fuel card income for this month if a fuel card was involved
+      if (fuelCardIdValue || (editTx && editTx.fuel_card_id)) {
+        const d = new Date(formDate);
+        await recalculateFuelCardIncome(user.id, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue || editTx!.fuel_card_id!);
       }
       setSheetOpen(false);
       loadData();
@@ -151,6 +168,12 @@ const MovimentosPage: React.FC = () => {
     if (error) {
       toast.error(error.message);
     } else {
+      // Check if deleted tx had a fuel card — recalculate
+      const deletedTx = transactions.find(t => t.id === id);
+      if (deletedTx && deletedTx.fuel_card_id) {
+        const d = new Date(deletedTx.date);
+        await recalculateFuelCardIncome(user!.id, d.getFullYear(), d.getMonth() + 1, deletedTx.fuel_card_id);
+      }
       toast.success('Movimento eliminado');
       loadData();
     }
@@ -158,6 +181,7 @@ const MovimentosPage: React.FC = () => {
 
   const handleInlineSave = async () => {
     if (!user || !inlineAmount || !inlineDate) return;
+    const fuelCardIdValue = isFuelSubcategory(inlineSubcategory, inlineMacroGroup) && inlineFuelCardId ? inlineFuelCardId : null;
     const payload = {
       user_id: user.id,
       date: inlineDate,
@@ -166,27 +190,48 @@ const MovimentosPage: React.FC = () => {
       category_id: inlineCategory || null,
       subcategory_id: inlineSubcategory || null,
       macro_group: inlineMacroGroup,
+      fuel_card_id: fuelCardIdValue,
     };
     try {
       const { error } = await supabase.from('transactions').insert(payload);
       if (error) throw error;
       toast.success('Movimento criado');
+      if (fuelCardIdValue) {
+        const d = new Date(inlineDate);
+        await recalculateFuelCardIncome(user.id, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue);
+      }
       // Reset inline but keep it open for next entry
       setInlineAmount('');
       setInlineNotes('');
       setInlineSubcategory('');
+      setInlineFuelCardId('');
       loadData();
     } catch (err: any) {
       toast.error(err.message);
     }
   };
 
+  // Helper: check if a subcategory name is "Combustível" under Despesas
+  const isFuelSubcategory = (subcatId: string, mg: string) => {
+    if (mg !== 'Despesas' || !subcatId) return false;
+    for (const cat of categories) {
+      if (cat.group_type !== 'Despesas') continue;
+      const sub = (cat.subcategories || []).find((s: any) => s.id === subcatId);
+      if (sub && sub.name.toLowerCase().includes('combustível')) return true;
+    }
+    return false;
+  };
+
+  const activeFuelCards = fuelCards.filter(fc => fc.is_active);
+
   const inlineCatOptions = categories.filter(c => c.group_type === inlineMacroGroup);
   const inlineSelectedCat = categories.find(c => c.id === inlineCategory);
   const inlineSubcats = inlineSelectedCat?.subcategories || [];
+  const showInlineFuelCard = isFuelSubcategory(inlineSubcategory, inlineMacroGroup);
 
   const selectedCat = categories.find(c => c.id === formCategory);
   const subcats = selectedCat?.subcategories || [];
+  const showFormFuelCard = isFuelSubcategory(formSubcategory, formMacroGroup);
 
   const totalPages = Math.ceil(count / pageSize);
 
@@ -408,6 +453,20 @@ const MovimentosPage: React.FC = () => {
                   <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                   <SelectContent>
                     {subcats.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {showFormFuelCard && (
+              <div className="space-y-2">
+                <Label>Cartão de Combustível</Label>
+                <Select value={formFuelCardId || 'none'} onValueChange={v => setFormFuelCardId(v === 'none' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {activeFuelCards.map(fc => (
+                      <SelectItem key={fc.id} value={fc.id}>{fc.card_name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

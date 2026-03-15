@@ -17,6 +17,9 @@ export interface TransactionRow {
   event_label: string | null;
   is_extraordinary: boolean | null;
   exclude_from_kpis: boolean | null;
+  fuel_card_id: string | null;
+  linked_transaction_id: string | null;
+  auto_generated: boolean | null;
   created_at: string | null;
   updated_at: string | null;
   categories?: { id: string; name: string; group_type: MacroGroup } | null;
