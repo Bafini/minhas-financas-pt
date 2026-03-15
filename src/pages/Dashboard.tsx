@@ -76,13 +76,13 @@ const Dashboard: React.FC = () => {
         <KPICard title="Rendimentos" value={summary.rendimentos} previousValue={prevSummary.rendimentos} icon={TrendingUp} variant="income" />
         <KPICard title="Despesas" value={summary.despesas} previousValue={prevSummary.despesas} icon={TrendingDown} variant="expense" />
         <KPICard title="Investimentos" value={summary.investimentos} previousValue={prevSummary.investimentos} icon={PiggyBank} variant="investment" />
-        <KPICard title="Saldo Líquido" value={summary.saldoLiquido} previousValue={prevSummary.saldoLiquido} icon={Wallet} variant="neutral" />
+        <KPICard title="Saldo Líquido" value={summary.saldoLiquido} previousValue={prevSummary.saldoLiquido} icon={Wallet} variant="neutral" tooltip="Rendimentos menos Despesas e Investimentos. Representa o dinheiro que sobrou no período." />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <KPICard title="Taxa de Poupança" value={summary.taxaPoupanca} previousValue={prevSummary.taxaPoupanca} format="percentage" icon={Target} variant="income" />
-        <KPICard title="Taxa de Investimento" value={summary.taxaInvestimento} previousValue={prevSummary.taxaInvestimento} format="percentage" icon={BarChart3} variant="investment" />
-        <KPICard title="Poupança Líquida" value={summary.poupancaLiquida} previousValue={prevSummary.poupancaLiquida} icon={Wallet} variant="income" />
+        <KPICard title="Taxa de Poupança" value={summary.taxaPoupanca} previousValue={prevSummary.taxaPoupanca} format="percentage" icon={Target} variant="income" tooltip="Percentagem dos rendimentos que não foi gasta nem investida: (Rendimentos − Despesas − Investimentos) ÷ Rendimentos × 100" />
+        <KPICard title="Taxa de Investimento" value={summary.taxaInvestimento} previousValue={prevSummary.taxaInvestimento} format="percentage" icon={BarChart3} variant="investment" tooltip="Percentagem dos rendimentos alocada a investimentos: Investimentos ÷ Rendimentos × 100" />
+        <KPICard title="Poupança Líquida" value={summary.poupancaLiquida} previousValue={prevSummary.poupancaLiquida} icon={Wallet} variant="income" tooltip="Rendimentos menos Despesas (sem considerar investimentos). Indica quanto poupou antes de investir." />
       </div>
 
       <Card className="glass-surface">

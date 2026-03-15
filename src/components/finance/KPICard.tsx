@@ -1,8 +1,9 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface KPICardProps {
   title: string;
@@ -11,6 +12,7 @@ interface KPICardProps {
   format?: 'currency' | 'percentage' | 'number';
   icon?: React.ComponentType<any>;
   variant?: 'income' | 'expense' | 'investment' | 'neutral';
+  tooltip?: string;
 }
 
 const KPICard: React.FC<KPICardProps> = ({
@@ -20,6 +22,7 @@ const KPICard: React.FC<KPICardProps> = ({
   format = 'currency',
   icon: Icon,
   variant = 'neutral',
+  tooltip,
 }) => {
   const delta = previousValue !== undefined ? value - previousValue : undefined;
   const deltaPercentage = previousValue && previousValue !== 0
@@ -42,7 +45,21 @@ const KPICard: React.FC<KPICardProps> = ({
   return (
     <Card className="glass-surface animate-fade-in">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          {tooltip && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[220px] text-xs">
+                  {tooltip}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         {Icon && <Icon className={cn('h-4 w-4', variantColors[variant])} />}
       </CardHeader>
       <CardContent>
