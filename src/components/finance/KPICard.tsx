@@ -1,8 +1,9 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency, formatPercentage } from '@/lib/formatters';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface KPICardProps {
   title: string;
@@ -11,6 +12,7 @@ interface KPICardProps {
   format?: 'currency' | 'percentage' | 'number';
   icon?: React.ComponentType<any>;
   variant?: 'income' | 'expense' | 'investment' | 'neutral';
+  tooltip?: string;
 }
 
 const KPICard: React.FC<KPICardProps> = ({
