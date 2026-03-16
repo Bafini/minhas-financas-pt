@@ -249,6 +249,39 @@ export type Database = {
         }
         Relationships: []
       }
+      partnerships: {
+        Row: {
+          created_at: string | null
+          id: string
+          permission_level: string
+          requester_id: string
+          status: string
+          target_email: string
+          target_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          permission_level?: string
+          requester_id: string
+          status?: string
+          target_email: string
+          target_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          permission_level?: string
+          requester_id?: string
+          status?: string
+          target_email?: string
+          target_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -533,7 +566,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      find_user_id_by_email: { Args: { _email: string }; Returns: string }
+      get_partner_id: { Args: { _user_id: string }; Returns: string }
+      get_partner_permission: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       frequency_type: "daily" | "weekly" | "monthly" | "quarterly" | "yearly"
