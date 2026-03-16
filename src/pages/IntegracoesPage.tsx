@@ -387,10 +387,10 @@ const IntegracoesPage: React.FC = () => {
           <TabsTrigger value="export"><Download className="mr-2 h-4 w-4" />Exportar</TabsTrigger>
         </TabsList>
         <TabsContent value="import" className="space-y-4">
-          <ImportTab userId={user.id} dateFormat={dateFormat} />
+          <ImportTab userId={activeUserId} dateFormat={dateFormat} />
         </TabsContent>
         <TabsContent value="export" className="space-y-4">
-          <ExportTab userId={user.id} dateFormat={dateFormat} />
+          <ExportTab userId={activeUserId} dateFormat={dateFormat} />
         </TabsContent>
       </Tabs>
     </div>
