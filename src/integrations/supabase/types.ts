@@ -569,6 +569,10 @@ export type Database = {
       find_user_id_by_email: { Args: { _email: string }; Returns: string }
       get_partner_id: { Args: { _user_id: string }; Returns: string }
       get_partner_permission: { Args: { _user_id: string }; Returns: string }
+      is_partnership_member: {
+        Args: { _profile_user_id: string; _viewer_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       frequency_type: "daily" | "weekly" | "monthly" | "quarterly" | "yearly"
