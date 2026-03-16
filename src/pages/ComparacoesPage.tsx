@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { fetchAllRows } from '@/lib/supabaseHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency, formatPercentage, getMonthName } from '@/lib/formatters';

@@ -32,16 +32,16 @@ const Dashboard: React.FC = () => {
     if (!user) return;
     setLoading(true);
     Promise.all([
-      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', user.id).eq('is_duplicate', false)
+      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', activeUserId).eq('is_duplicate', false)
         .gte('date', range.start).lte('date', range.end)),
-      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', user.id).eq('is_duplicate', false)
+      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', activeUserId).eq('is_duplicate', false)
         .gte('date', range.prevStart).lte('date', range.prevEnd)),
     ]).then(([ytd, ytdPrev]) => {
       setTransactions(ytd);
       setPrevTransactions(ytdPrev);
       setLoading(false);
     });
-  }, [user, range]);
+  }, [user, activeUserId, range]);
 
   const summary = useMemo(() => calculateSummary(transactions), [transactions]);
   const prevSummary = useMemo(() => calculateSummary(prevTransactions), [prevTransactions]);

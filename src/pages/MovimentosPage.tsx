@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { fetchTransactions, fetchCategories, TransactionRow } from '@/lib/queries';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { fetchFuelCards, recalculateFuelCardIncome, FuelCard } from '@/lib/fuelCardHelpers';
