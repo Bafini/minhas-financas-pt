@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 
 const EventosPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId } = useActiveProfile();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [eventTxs, setEventTxs] = useState<any[]>([]);
