@@ -66,23 +66,32 @@ const KPICard: React.FC<KPICardProps> = ({
         <div className={cn('text-2xl font-bold financial-value', variantColors[variant])}>
           {formattedValue}
         </div>
-        {delta !== undefined && deltaPercentage !== undefined && (
-          <p className="mt-1 flex items-center text-xs text-muted-foreground">
-            {delta > 0 ? (
-              <TrendingUp className="mr-1 h-3 w-3 text-income" />
-            ) : delta < 0 ? (
-              <TrendingDown className="mr-1 h-3 w-3 text-expense" />
-            ) : (
-              <Minus className="mr-1 h-3 w-3" />
-            )}
-            <span className={cn(
-              'font-medium',
-              delta > 0 ? 'text-income' : delta < 0 ? 'text-expense' : ''
-            )}>
-              {formatPercentage(deltaPercentage)}
-            </span>
-            <span className="ml-1">vs período homólogo</span>
-          </p>
+        {delta !== undefined && deltaPercentage !== undefined && previousValue !== undefined && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="mt-1 flex items-center text-xs text-muted-foreground cursor-help">
+                  {delta > 0 ? (
+                    <TrendingUp className="mr-1 h-3 w-3 text-income" />
+                  ) : delta < 0 ? (
+                    <TrendingDown className="mr-1 h-3 w-3 text-expense" />
+                  ) : (
+                    <Minus className="mr-1 h-3 w-3" />
+                  )}
+                  <span className={cn(
+                    'font-medium',
+                    delta > 0 ? 'text-income' : delta < 0 ? 'text-expense' : ''
+                  )}>
+                    {formatPercentage(deltaPercentage)}
+                  </span>
+                  <span className="ml-1">vs período homólogo</span>
+                </p>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                Período homólogo: {format === 'currency' ? formatCurrency(previousValue) : format === 'percentage' ? `${previousValue.toFixed(1)}%` : previousValue.toLocaleString('pt-PT')}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </CardContent>
     </Card>
