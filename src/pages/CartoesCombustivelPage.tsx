@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 
 const CartoesCombustivelPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId, canWrite } = useActiveProfile();
   const [cards, setCards] = useState<FuelCard[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
