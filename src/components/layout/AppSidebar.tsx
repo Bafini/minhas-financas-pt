@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -30,9 +31,12 @@ import {
   EyeOff,
   Eye,
   Fuel,
+  Users,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { Badge } from '@/components/ui/badge';
 
 const mainNav = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
