@@ -132,7 +132,7 @@ const MovimentosPage: React.FC = () => {
     if (!user) return;
     const fuelCardIdValue = isFuelSubcategory(formSubcategory, formMacroGroup) && formFuelCardId ? formFuelCardId : null;
     const payload = {
-      user_id: user.id,
+      user_id: activeUserId,
       date: formDate,
       amount: parseFloat(formAmount),
       notes: formNotes || null,
