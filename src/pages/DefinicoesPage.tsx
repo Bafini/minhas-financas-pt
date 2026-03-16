@@ -149,57 +149,59 @@ const DefinicoesPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-destructive/30 glass-surface">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2 text-destructive">
-            <Trash2 className="h-4 w-4" />
-            Zona de Perigo
-          </CardTitle>
-          <CardDescription>Ações irreversíveis</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">Apagar todos os dados</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Apagar todos os dados?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta ação é <strong>irreversível</strong>. Todas as transações, categorias, subcategorias, 
-                  orçamentos, recorrências, eventos, filtros guardados e histórico de importações serão 
-                  permanentemente eliminados. A conta e o perfil serão mantidos.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="space-y-2 py-2">
-                <Label>Escreva <strong>APAGAR</strong> para confirmar</Label>
-                <Input
-                  value={confirmText}
-                  onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder="APAGAR"
-                />
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setConfirmText('')}>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteAllData}
-                  disabled={confirmText !== 'APAGAR' || deleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {deleting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      A apagar...
-                    </>
-                  ) : (
-                    'Apagar tudo'
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardContent>
-      </Card>
+      {!isDemo && (
+        <Card className="border-destructive/30 glass-surface">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-destructive">
+              <Trash2 className="h-4 w-4" />
+              Zona de Perigo
+            </CardTitle>
+            <CardDescription>Ações irreversíveis</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">Apagar todos os dados</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Apagar todos os dados?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação é <strong>irreversível</strong>. Todas as transações, categorias, subcategorias, 
+                    orçamentos, recorrências, eventos, filtros guardados e histórico de importações serão 
+                    permanentemente eliminados. A conta e o perfil serão mantidos.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2 py-2">
+                  <Label>Escreva <strong>APAGAR</strong> para confirmar</Label>
+                  <Input
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="APAGAR"
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setConfirmText('')}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteAllData}
+                    disabled={confirmText !== 'APAGAR' || deleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        A apagar...
+                      </>
+                    ) : (
+                      'Apagar tudo'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
