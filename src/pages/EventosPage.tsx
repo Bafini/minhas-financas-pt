@@ -95,7 +95,7 @@ const EventosPage: React.FC = () => {
   const handleCreateEvent = async () => {
     if (!user || !eventName) return;
     const { error } = await supabase.from('event_labels').insert({
-      user_id: user.id,
+      user_id: activeUserId,
       name: eventName,
       description: eventDesc || null,
     });

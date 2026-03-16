@@ -200,7 +200,7 @@ const MovimentosPage: React.FC = () => {
       toast.success('Movimento criado');
       if (fuelCardIdValue) {
         const d = new Date(inlineDate);
-        await recalculateFuelCardIncome(user.id, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue);
+        await recalculateFuelCardIncome(activeUserId, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue);
       }
       // Reset inline but keep it open for next entry
       setInlineAmount('');

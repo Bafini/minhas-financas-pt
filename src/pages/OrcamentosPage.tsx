@@ -75,7 +75,7 @@ const OrcamentosPage: React.FC = () => {
         await supabase.from('budgets').update({ amount: parseFloat(formAmount) }).eq('id', existing.id);
       } else {
         await supabase.from('budgets').insert({
-          user_id: user.id,
+          user_id: activeUserId,
           category_id: formCatId,
           amount: parseFloat(formAmount),
           month,

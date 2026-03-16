@@ -81,7 +81,7 @@ const RecorrenciasPage: React.FC = () => {
   const handleSave = async () => {
     if (!user || !formName || !formAmount || !formStart) return;
     const payload = {
-      user_id: user.id,
+      user_id: activeUserId,
       name: formName,
       amount: parseFloat(formAmount),
       frequency: formFreq as any,

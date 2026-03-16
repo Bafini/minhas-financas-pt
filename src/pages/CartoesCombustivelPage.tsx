@@ -94,7 +94,7 @@ const CartoesCombustivelPage: React.FC = () => {
   const handleSave = async () => {
     if (!user || !formName || !formLimit) return;
     const payload = {
-      user_id: user.id,
+      user_id: activeUserId,
       card_name: formName,
       monthly_limit: parseFloat(formLimit),
       income_subcategory_id: formSubcategoryId || null,
