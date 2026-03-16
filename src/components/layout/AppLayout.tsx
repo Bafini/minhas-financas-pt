@@ -35,6 +35,12 @@ const AppLayout: React.FC = () => {
         <header className="flex h-12 items-center border-b px-4 md:hidden">
           <SidebarTrigger />
           <span className="ml-3 text-sm font-semibold">Finanças</span>
+          {isViewingPartner && partner && (
+            <Badge variant="secondary" className="ml-auto text-[10px]">
+              <Users className="mr-1 h-3 w-3" />
+              {partner.displayName?.split(' ')[0]}
+            </Badge>
+          )}
         </header>
         <div className="flex-1 p-4 md:p-6 lg:p-8">
           <Outlet />
