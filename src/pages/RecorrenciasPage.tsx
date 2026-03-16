@@ -33,6 +33,7 @@ const groupBadge: Record<string, string> = {
 
 const RecorrenciasPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId, canWrite } = useActiveProfile();
   const [rules, setRules] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
