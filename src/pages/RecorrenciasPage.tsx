@@ -52,7 +52,7 @@ const RecorrenciasPage: React.FC = () => {
 
   const loadData = async () => {
     if (!user) return;
-    const [r, c] = await Promise.all([fetchRecurringRules(user.id), fetchCategories(user.id)]);
+    const [r, c] = await Promise.all([fetchRecurringRules(activeUserId), fetchCategories(activeUserId)]);
     setRules(r || []);
     setCategories(c || []);
     setLoading(false);
