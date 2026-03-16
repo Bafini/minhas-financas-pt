@@ -26,6 +26,7 @@ const now = new Date();
 
 const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, variant }) => {
   const { user } = useAuth();
+  const { activeUserId } = useActiveProfile();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [prevTransactions, setPrevTransactions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
