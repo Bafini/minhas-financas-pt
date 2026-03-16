@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { seedCategoriesForUser } from '@/lib/seeds';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Outlet } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const AppLayout: React.FC = () => {
   const { user } = useAuth();
