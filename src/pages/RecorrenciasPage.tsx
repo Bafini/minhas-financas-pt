@@ -126,7 +126,7 @@ const RecorrenciasPage: React.FC = () => {
 
     while (current <= end) {
       txs.push({
-        user_id: user.id,
+        user_id: activeUserId,
         date: current.toISOString().split('T')[0],
         amount: Number(rule.amount),
         notes: rule.name,

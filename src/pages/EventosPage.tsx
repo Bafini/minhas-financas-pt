@@ -137,7 +137,7 @@ const EventosPage: React.FC = () => {
       .is('event_label', null);
     if (error) { toast.error(error.message); return; }
     // Also create event_labels entry
-    await supabase.from('event_labels').insert({ user_id: user.id, name: note }).single();
+    await supabase.from('event_labels').insert({ user_id: activeUserId, name: note }).single();
     toast.success(`Evento "${note}" criado com transações associadas`);
     loadAll();
   };
