@@ -25,6 +25,7 @@ const groupColors: Record<string, string> = {
 
 const CategoriasPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId, canWrite } = useActiveProfile();
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
