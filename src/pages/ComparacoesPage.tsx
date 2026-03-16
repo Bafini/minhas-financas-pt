@@ -26,6 +26,7 @@ const NONE = '__none__';
 
 const ComparacoesPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId } = useActiveProfile();
   const [loading, setLoading] = useState(true);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
