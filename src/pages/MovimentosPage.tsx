@@ -185,7 +185,7 @@ const MovimentosPage: React.FC = () => {
     if (!user || !inlineAmount || !inlineDate) return;
     const fuelCardIdValue = isFuelSubcategory(inlineSubcategory, inlineMacroGroup) && inlineFuelCardId ? inlineFuelCardId : null;
     const payload = {
-      user_id: user.id,
+      user_id: activeUserId,
       date: inlineDate,
       amount: parseFloat(inlineAmount),
       notes: inlineNotes || null,
