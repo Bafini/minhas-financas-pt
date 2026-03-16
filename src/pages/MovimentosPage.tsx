@@ -28,7 +28,7 @@ const groupBadgeClass: Record<MacroGroup, string> = {
 };
 
 const MovimentosPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const { activeUserId, canWrite } = useActiveProfile();
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -165,6 +165,7 @@ const MovimentosPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (isDemo) { toast.error('A conta demo não permite apagar dados'); return; }
     if (!confirm('Eliminar este movimento?')) return;
     const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (error) {
