@@ -34,8 +34,8 @@ const OrcamentosPage: React.FC = () => {
     setLoading(true);
 
     const [budgetData, catData] = await Promise.all([
-      fetchBudgets(user.id, month, year),
-      fetchCategories(user.id),
+      fetchBudgets(activeUserId, month, year),
+      fetchCategories(activeUserId),
     ]);
 
     // Get actual spending for the month
