@@ -47,7 +47,7 @@ const OrcamentosPage: React.FC = () => {
     const { data: txData } = await supabase
       .from('transactions')
       .select('category_id, amount')
-      .eq('user_id', user.id)
+      .eq('user_id', activeUserId)
       .eq('macro_group', 'Despesas')
       .gte('date', startDate)
       .lt('date', endDate);

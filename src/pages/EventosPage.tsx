@@ -38,7 +38,7 @@ const EventosPage: React.FC = () => {
     setLoading(false);
   };
 
-  useEffect(() => { loadAll(); }, [user]);
+  useEffect(() => { loadAll(); }, [user, activeUserId]);
 
   // Aggregate events from transactions
   const eventSummaries = useMemo(() => {

@@ -77,7 +77,7 @@ const MovimentosPage: React.FC = () => {
     setLoading(true);
     try {
       const [txResult, cats, fc] = await Promise.all([
-        fetchTransactions(user.id, {
+        fetchTransactions(activeUserId, {
           search: search || undefined,
           macroGroup: (macroGroup as MacroGroup) || undefined,
           categoryId: categoryId || undefined,
@@ -86,8 +86,8 @@ const MovimentosPage: React.FC = () => {
           page,
           pageSize,
         }),
-        fetchCategories(user.id),
-        fetchFuelCards(user.id),
+        fetchCategories(activeUserId),
+        fetchFuelCards(activeUserId),
       ]);
       setTransactions(txResult.data);
       setCount(txResult.count);
@@ -98,7 +98,7 @@ const MovimentosPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, search, macroGroup, categoryId, startDate, endDate, page]);
+  }, [user, activeUserId, search, macroGroup, categoryId, startDate, endDate, page]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

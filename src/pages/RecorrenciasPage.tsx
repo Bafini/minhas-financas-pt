@@ -58,7 +58,7 @@ const RecorrenciasPage: React.FC = () => {
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, [user]);
+  useEffect(() => { loadData(); }, [user, activeUserId]);
 
   const openNew = () => {
     setEditing(null);

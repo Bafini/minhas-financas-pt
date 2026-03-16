@@ -46,9 +46,9 @@ const CartoesCombustivelPage: React.FC = () => {
     setLoading(true);
     try {
       const [cardsData, cats, summ] = await Promise.all([
-        fetchFuelCards(user.id),
-        fetchCategories(user.id),
-        getFuelCardMonthlySummary(user.id, summaryYear, summaryMonth),
+        fetchFuelCards(activeUserId),
+        fetchCategories(activeUserId),
+        getFuelCardMonthlySummary(activeUserId, summaryYear, summaryMonth),
       ]);
       setCards(cardsData);
       setCategories(cats || []);

@@ -43,8 +43,8 @@ const CategoriasPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     const [data, countRows] = await Promise.all([
-      fetchCategories(user.id),
-      fetchAllRows((s) => s.from('transactions').select('category_id, subcategory_id').eq('user_id', user.id)),
+      fetchCategories(activeUserId),
+      fetchAllRows((s) => s.from('transactions').select('category_id, subcategory_id').eq('user_id', activeUserId)),
     ]);
     setCategories(data || []);
 

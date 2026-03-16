@@ -46,14 +46,14 @@ const ComparacoesPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     Promise.all([
-      fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)').eq('user_id', user.id).eq('is_duplicate', false).eq('exclude_from_kpis', false).order('date')),
-      supabase.from('categories').select('*, subcategories(*)').eq('user_id', user.id),
+      fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)').eq('user_id', activeUserId).eq('is_duplicate', false).eq('exclude_from_kpis', false).order('date')),
+      supabase.from('categories').select('*, subcategories(*)').eq('user_id', activeUserId),
     ]).then(([tx, { data: cats }]) => {
       setAllTransactions(tx);
       setCategories(cats || []);
       setLoading(false);
     });
-  }, [user]);
+  }, [user, activeUserId]);
 
   // Filter transactions per year, optionally YTD
   const txByYear = useMemo(() => {
