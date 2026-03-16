@@ -119,6 +119,8 @@ const DefinicoesPage: React.FC = () => {
         </CardContent>
       </Card>
 
+      <PartnershipSection />
+
       <Card className="glass-surface">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
