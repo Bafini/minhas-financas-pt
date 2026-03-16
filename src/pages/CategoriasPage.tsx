@@ -67,7 +67,7 @@ const CategoriasPage: React.FC = () => {
         await supabase.from('categories').update({ name: catName, group_type: catGroup }).eq('id', editingCat.id);
         toast.success('Categoria atualizada');
       } else {
-        await supabase.from('categories').insert({ user_id: user.id, name: catName, group_type: catGroup });
+        await supabase.from('categories').insert({ user_id: activeUserId, name: catName, group_type: catGroup });
         toast.success('Categoria criada');
       }
       setDialogOpen(false);
