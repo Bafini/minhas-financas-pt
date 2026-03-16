@@ -363,13 +363,14 @@ const ImportTab: React.FC<{ userId: string; dateFormat: DateFormatType }> = ({ u
 /* ── Main page ── */
 const IntegracoesPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId } = useActiveProfile();
   const [dateFormat, setDateFormat] = useState<DateFormatType>('DD/MM/YYYY');
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('date_format').eq('user_id', user.id).single()
+    supabase.from('profiles').select('date_format').eq('user_id', activeUserId).single()
       .then(({ data }) => { if (data?.date_format) setDateFormat(data.date_format as DateFormatType); });
-  }, [user]);
+  }, [user, activeUserId]);
 
   if (!user) return null;
 
