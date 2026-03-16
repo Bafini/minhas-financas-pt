@@ -184,7 +184,7 @@ const PartnershipSection: React.FC = () => {
                 <p className="text-sm font-medium">{getPartnerName(activePartnership)}</p>
                 <p className="text-xs text-muted-foreground">{getPermissionLabel(activePartnership)}</p>
               </div>
-              <Badge variant="default" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+              <Badge variant="default" className="bg-income/20 text-income border-income/30">
                 Ativa
               </Badge>
             </div>

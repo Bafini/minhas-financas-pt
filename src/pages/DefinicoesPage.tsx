@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Settings, User, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import PartnershipSection from '@/components/settings/PartnershipSection';
 
 const DATE_FORMATS = [
   { value: 'DD/MM/YYYY', label: 'DD/MM/AAAA (31/12/2025)' },
