@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -30,9 +31,12 @@ import {
   EyeOff,
   Eye,
   Fuel,
+  Users,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { Badge } from '@/components/ui/badge';
 
 const mainNav = [
   { title: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -59,6 +63,7 @@ const manageNav = [
 const AppSidebar: React.FC = () => {
   const { signOut } = useAuth();
   const { hidden, toggle } = usePrivacy();
+  const { partner, isViewingPartner, switchProfile, ownDisplayName } = useActiveProfile();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -67,6 +72,35 @@ const AppSidebar: React.FC = () => {
       <SidebarHeader className="p-4">
         <h1 className="text-lg font-bold tracking-tight">Finanças</h1>
         <p className="text-xs text-muted-foreground">Soberania Financeira</p>
+        {partner && (
+          <div className="mt-3 space-y-1.5">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Perfil ativo</p>
+            <div className="flex gap-1">
+              <Button
+                variant={!isViewingPartner ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1 text-xs h-7"
+                onClick={() => switchProfile(false)}
+              >
+                {ownDisplayName?.split(' ')[0] || 'Eu'}
+              </Button>
+              <Button
+                variant={isViewingPartner ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1 text-xs h-7"
+                onClick={() => switchProfile(true)}
+              >
+                {partner.displayName?.split(' ')[0] || 'Parceiro'}
+              </Button>
+            </div>
+            {isViewingPartner && (
+              <Badge variant="secondary" className="w-full justify-center text-[10px]">
+                <Users className="mr-1 h-3 w-3" />
+                A ver dados de {partner.displayName?.split(' ')[0]}
+              </Badge>
+            )}
+          </div>
+        )}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

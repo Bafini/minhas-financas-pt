@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { fetchCategories } from '@/lib/queries';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAllRows } from '@/lib/supabaseHelpers';
@@ -24,6 +25,7 @@ const groupColors: Record<string, string> = {
 
 const CategoriasPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId, canWrite } = useActiveProfile();
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -41,8 +43,8 @@ const CategoriasPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     const [data, countRows] = await Promise.all([
-      fetchCategories(user.id),
-      fetchAllRows((s) => s.from('transactions').select('category_id, subcategory_id').eq('user_id', user.id)),
+      fetchCategories(activeUserId),
+      fetchAllRows((s) => s.from('transactions').select('category_id, subcategory_id').eq('user_id', activeUserId)),
     ]);
     setCategories(data || []);
 
@@ -65,7 +67,7 @@ const CategoriasPage: React.FC = () => {
         await supabase.from('categories').update({ name: catName, group_type: catGroup }).eq('id', editingCat.id);
         toast.success('Categoria atualizada');
       } else {
-        await supabase.from('categories').insert({ user_id: user.id, name: catName, group_type: catGroup });
+        await supabase.from('categories').insert({ user_id: activeUserId, name: catName, group_type: catGroup });
         toast.success('Categoria criada');
       }
       setDialogOpen(false);
@@ -82,7 +84,7 @@ const CategoriasPage: React.FC = () => {
         await supabase.from('subcategories').update({ name: subName, category_id: parentCatId }).eq('id', editingSub.id);
         toast.success('Subcategoria atualizada');
       } else {
-        await supabase.from('subcategories').insert({ category_id: parentCatId, user_id: user.id, name: subName });
+        await supabase.from('subcategories').insert({ category_id: parentCatId, user_id: activeUserId, name: subName });
         toast.success('Subcategoria criada');
       }
       setSubDialogOpen(false);

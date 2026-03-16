@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAllRows } from '@/lib/supabaseHelpers';
 import { formatCurrency, formatDate } from '@/lib/formatters';
@@ -17,6 +18,7 @@ import { cn } from '@/lib/utils';
 
 const EventosPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId } = useActiveProfile();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [eventTxs, setEventTxs] = useState<any[]>([]);
@@ -30,13 +32,13 @@ const EventosPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     const txs = await fetchAllRows((s) =>
-      s.from('transactions').select('id, amount, date, macro_group, event_label, notes').eq('user_id', user.id)
+      s.from('transactions').select('id, amount, date, macro_group, event_label, notes').eq('user_id', activeUserId)
     );
     setTransactions(txs);
     setLoading(false);
   };
 
-  useEffect(() => { loadAll(); }, [user]);
+  useEffect(() => { loadAll(); }, [user, activeUserId]);
 
   // Aggregate events from transactions
   const eventSummaries = useMemo(() => {
@@ -93,7 +95,7 @@ const EventosPage: React.FC = () => {
   const handleCreateEvent = async () => {
     if (!user || !eventName) return;
     const { error } = await supabase.from('event_labels').insert({
-      user_id: user.id,
+      user_id: activeUserId,
       name: eventName,
       description: eventDesc || null,
     });
@@ -135,7 +137,7 @@ const EventosPage: React.FC = () => {
       .is('event_label', null);
     if (error) { toast.error(error.message); return; }
     // Also create event_labels entry
-    await supabase.from('event_labels').insert({ user_id: user.id, name: note }).single();
+    await supabase.from('event_labels').insert({ user_id: activeUserId, name: note }).single();
     toast.success(`Evento "${note}" criado com transações associadas`);
     loadAll();
   };

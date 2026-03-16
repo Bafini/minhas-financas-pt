@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAllRows } from '@/lib/supabaseHelpers';
 import { calculateDelta, MacroGroup } from '@/lib/calculations';
@@ -25,6 +26,7 @@ const now = new Date();
 
 const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, variant }) => {
   const { user } = useAuth();
+  const { activeUserId } = useActiveProfile();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [prevTransactions, setPrevTransactions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -44,20 +46,20 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
     setLoading(true);
     Promise.all([
       fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)')
-        .eq('user_id', user.id).eq('macro_group', macroGroup).eq('is_duplicate', false).eq('exclude_from_kpis', false)
+        .eq('user_id', activeUserId).eq('macro_group', macroGroup).eq('is_duplicate', false).eq('exclude_from_kpis', false)
         .gte('date', range.start).lte('date', range.end)),
       fetchAllRows((s) => s.from('transactions').select('*, categories(name), subcategories(name)')
-        .eq('user_id', user.id).eq('macro_group', macroGroup).eq('is_duplicate', false).eq('exclude_from_kpis', false)
+        .eq('user_id', activeUserId).eq('macro_group', macroGroup).eq('is_duplicate', false).eq('exclude_from_kpis', false)
         .gte('date', range.prevStart).lte('date', range.prevEnd)),
       supabase.from('categories').select('*, subcategories(*)')
-        .eq('user_id', user.id).eq('group_type', macroGroup),
+        .eq('user_id', activeUserId).eq('group_type', macroGroup),
     ]).then(([current, prev, { data: cats }]) => {
       setTransactions(current);
       setPrevTransactions(prev);
       setCategories(cats || []);
       setLoading(false);
     });
-  }, [user, range, macroGroup]);
+  }, [user, activeUserId, range, macroGroup]);
 
   const filteredTx = useMemo(() => {
     if (selectedCategory === 'all') return transactions;

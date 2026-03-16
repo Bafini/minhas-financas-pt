@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAllRows } from '@/lib/supabaseHelpers';
 import { calculateSummary } from '@/lib/calculations';
@@ -14,6 +15,7 @@ const now = new Date();
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId } = useActiveProfile();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [prevTransactions, setPrevTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,16 +32,16 @@ const Dashboard: React.FC = () => {
     if (!user) return;
     setLoading(true);
     Promise.all([
-      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', user.id).eq('is_duplicate', false)
+      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', activeUserId).eq('is_duplicate', false)
         .gte('date', range.start).lte('date', range.end)),
-      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', user.id).eq('is_duplicate', false)
+      fetchAllRows((s) => s.from('transactions').select('*').eq('user_id', activeUserId).eq('is_duplicate', false)
         .gte('date', range.prevStart).lte('date', range.prevEnd)),
     ]).then(([ytd, ytdPrev]) => {
       setTransactions(ytd);
       setPrevTransactions(ytdPrev);
       setLoading(false);
     });
-  }, [user, range]);
+  }, [user, activeUserId, range]);
 
   const summary = useMemo(() => calculateSummary(transactions), [transactions]);
   const prevSummary = useMemo(() => calculateSummary(prevTransactions), [prevTransactions]);

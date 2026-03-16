@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchCategories, fetchBudgets } from '@/lib/queries';
 import { formatCurrency } from '@/lib/formatters';
@@ -16,6 +17,7 @@ import { cn } from '@/lib/utils';
 
 const OrcamentosPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId, canWrite } = useActiveProfile();
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -32,8 +34,8 @@ const OrcamentosPage: React.FC = () => {
     setLoading(true);
 
     const [budgetData, catData] = await Promise.all([
-      fetchBudgets(user.id, month, year),
-      fetchCategories(user.id),
+      fetchBudgets(activeUserId, month, year),
+      fetchCategories(activeUserId),
     ]);
 
     // Get actual spending for the month
@@ -45,7 +47,7 @@ const OrcamentosPage: React.FC = () => {
     const { data: txData } = await supabase
       .from('transactions')
       .select('category_id, amount')
-      .eq('user_id', user.id)
+      .eq('user_id', activeUserId)
       .eq('macro_group', 'Despesas')
       .gte('date', startDate)
       .lt('date', endDate);
@@ -73,7 +75,7 @@ const OrcamentosPage: React.FC = () => {
         await supabase.from('budgets').update({ amount: parseFloat(formAmount) }).eq('id', existing.id);
       } else {
         await supabase.from('budgets').insert({
-          user_id: user.id,
+          user_id: activeUserId,
           category_id: formCatId,
           amount: parseFloat(formAmount),
           month,

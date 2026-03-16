@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { fetchTransactions, fetchCategories, TransactionRow } from '@/lib/queries';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { fetchFuelCards, recalculateFuelCardIncome, FuelCard } from '@/lib/fuelCardHelpers';
@@ -28,6 +29,7 @@ const groupBadgeClass: Record<MacroGroup, string> = {
 
 const MovimentosPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId, canWrite } = useActiveProfile();
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [count, setCount] = useState(0);
@@ -75,7 +77,7 @@ const MovimentosPage: React.FC = () => {
     setLoading(true);
     try {
       const [txResult, cats, fc] = await Promise.all([
-        fetchTransactions(user.id, {
+        fetchTransactions(activeUserId, {
           search: search || undefined,
           macroGroup: (macroGroup as MacroGroup) || undefined,
           categoryId: categoryId || undefined,
@@ -84,8 +86,8 @@ const MovimentosPage: React.FC = () => {
           page,
           pageSize,
         }),
-        fetchCategories(user.id),
-        fetchFuelCards(user.id),
+        fetchCategories(activeUserId),
+        fetchFuelCards(activeUserId),
       ]);
       setTransactions(txResult.data);
       setCount(txResult.count);
@@ -96,7 +98,7 @@ const MovimentosPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, search, macroGroup, categoryId, startDate, endDate, page]);
+  }, [user, activeUserId, search, macroGroup, categoryId, startDate, endDate, page]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -130,7 +132,7 @@ const MovimentosPage: React.FC = () => {
     if (!user) return;
     const fuelCardIdValue = isFuelSubcategory(formSubcategory, formMacroGroup) && formFuelCardId ? formFuelCardId : null;
     const payload = {
-      user_id: user.id,
+      user_id: activeUserId,
       date: formDate,
       amount: parseFloat(formAmount),
       notes: formNotes || null,
@@ -153,7 +155,7 @@ const MovimentosPage: React.FC = () => {
       // Recalculate fuel card income for this month if a fuel card was involved
       if (fuelCardIdValue || (editTx && editTx.fuel_card_id)) {
         const d = new Date(formDate);
-        await recalculateFuelCardIncome(user.id, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue || editTx!.fuel_card_id!);
+        await recalculateFuelCardIncome(activeUserId, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue || editTx!.fuel_card_id!);
       }
       setSheetOpen(false);
       loadData();
@@ -172,7 +174,7 @@ const MovimentosPage: React.FC = () => {
       const deletedTx = transactions.find(t => t.id === id);
       if (deletedTx && deletedTx.fuel_card_id) {
         const d = new Date(deletedTx.date);
-        await recalculateFuelCardIncome(user!.id, d.getFullYear(), d.getMonth() + 1, deletedTx.fuel_card_id);
+        await recalculateFuelCardIncome(activeUserId, d.getFullYear(), d.getMonth() + 1, deletedTx.fuel_card_id);
       }
       toast.success('Movimento eliminado');
       loadData();
@@ -183,7 +185,7 @@ const MovimentosPage: React.FC = () => {
     if (!user || !inlineAmount || !inlineDate) return;
     const fuelCardIdValue = isFuelSubcategory(inlineSubcategory, inlineMacroGroup) && inlineFuelCardId ? inlineFuelCardId : null;
     const payload = {
-      user_id: user.id,
+      user_id: activeUserId,
       date: inlineDate,
       amount: parseFloat(inlineAmount),
       notes: inlineNotes || null,
@@ -198,7 +200,7 @@ const MovimentosPage: React.FC = () => {
       toast.success('Movimento criado');
       if (fuelCardIdValue) {
         const d = new Date(inlineDate);
-        await recalculateFuelCardIncome(user.id, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue);
+        await recalculateFuelCardIncome(activeUserId, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue);
       }
       // Reset inline but keep it open for next entry
       setInlineAmount('');

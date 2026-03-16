@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchCategories } from '@/lib/queries';
 import { parseDateByFormat, toISODate, formatDate, DateFormatType } from '@/lib/formatters';
@@ -362,13 +363,14 @@ const ImportTab: React.FC<{ userId: string; dateFormat: DateFormatType }> = ({ u
 /* ── Main page ── */
 const IntegracoesPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId } = useActiveProfile();
   const [dateFormat, setDateFormat] = useState<DateFormatType>('DD/MM/YYYY');
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').select('date_format').eq('user_id', user.id).single()
+    supabase.from('profiles').select('date_format').eq('user_id', activeUserId).single()
       .then(({ data }) => { if (data?.date_format) setDateFormat(data.date_format as DateFormatType); });
-  }, [user]);
+  }, [user, activeUserId]);
 
   if (!user) return null;
 
@@ -385,10 +387,10 @@ const IntegracoesPage: React.FC = () => {
           <TabsTrigger value="export"><Download className="mr-2 h-4 w-4" />Exportar</TabsTrigger>
         </TabsList>
         <TabsContent value="import" className="space-y-4">
-          <ImportTab userId={user.id} dateFormat={dateFormat} />
+          <ImportTab userId={activeUserId} dateFormat={dateFormat} />
         </TabsContent>
         <TabsContent value="export" className="space-y-4">
-          <ExportTab userId={user.id} dateFormat={dateFormat} />
+          <ExportTab userId={activeUserId} dateFormat={dateFormat} />
         </TabsContent>
       </Tabs>
     </div>

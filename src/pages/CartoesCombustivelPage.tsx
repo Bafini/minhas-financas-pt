@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchCategories } from '@/lib/queries';
 import { formatCurrency } from '@/lib/formatters';
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils';
 
 const CartoesCombustivelPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId, canWrite } = useActiveProfile();
   const [cards, setCards] = useState<FuelCard[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,9 +46,9 @@ const CartoesCombustivelPage: React.FC = () => {
     setLoading(true);
     try {
       const [cardsData, cats, summ] = await Promise.all([
-        fetchFuelCards(user.id),
-        fetchCategories(user.id),
-        getFuelCardMonthlySummary(user.id, summaryYear, summaryMonth),
+        fetchFuelCards(activeUserId),
+        fetchCategories(activeUserId),
+        getFuelCardMonthlySummary(activeUserId, summaryYear, summaryMonth),
       ]);
       setCards(cardsData);
       setCategories(cats || []);
@@ -92,7 +94,7 @@ const CartoesCombustivelPage: React.FC = () => {
   const handleSave = async () => {
     if (!user || !formName || !formLimit) return;
     const payload = {
-      user_id: user.id,
+      user_id: activeUserId,
       card_name: formName,
       monthly_limit: parseFloat(formLimit),
       income_subcategory_id: formSubcategoryId || null,

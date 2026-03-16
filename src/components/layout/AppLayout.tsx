@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { seedCategoriesForUser } from '@/lib/seeds';
 import AppSidebar from '@/components/layout/AppSidebar';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Outlet } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const AppLayout: React.FC = () => {
   const { user } = useAuth();
+  const { isViewingPartner, partner } = useActiveProfile();
   const [seeding, setSeeding] = useState(true);
 
   useEffect(() => {
@@ -32,6 +35,12 @@ const AppLayout: React.FC = () => {
         <header className="flex h-12 items-center border-b px-4 md:hidden">
           <SidebarTrigger />
           <span className="ml-3 text-sm font-semibold">Finanças</span>
+          {isViewingPartner && partner && (
+            <Badge variant="secondary" className="ml-auto text-[10px]">
+              <Users className="mr-1 h-3 w-3" />
+              {partner.displayName?.split(' ')[0]}
+            </Badge>
+          )}
         </header>
         <div className="flex-1 p-4 md:p-6 lg:p-8">
           <Outlet />

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { fetchRecurringRules, fetchCategories } from '@/lib/queries';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/formatters';
@@ -32,6 +33,7 @@ const groupBadge: Record<string, string> = {
 
 const RecorrenciasPage: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId, canWrite } = useActiveProfile();
   const [rules, setRules] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,13 +52,13 @@ const RecorrenciasPage: React.FC = () => {
 
   const loadData = async () => {
     if (!user) return;
-    const [r, c] = await Promise.all([fetchRecurringRules(user.id), fetchCategories(user.id)]);
+    const [r, c] = await Promise.all([fetchRecurringRules(activeUserId), fetchCategories(activeUserId)]);
     setRules(r || []);
     setCategories(c || []);
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, [user]);
+  useEffect(() => { loadData(); }, [user, activeUserId]);
 
   const openNew = () => {
     setEditing(null);
@@ -79,7 +81,7 @@ const RecorrenciasPage: React.FC = () => {
   const handleSave = async () => {
     if (!user || !formName || !formAmount || !formStart) return;
     const payload = {
-      user_id: user.id,
+      user_id: activeUserId,
       name: formName,
       amount: parseFloat(formAmount),
       frequency: formFreq as any,
@@ -124,7 +126,7 @@ const RecorrenciasPage: React.FC = () => {
 
     while (current <= end) {
       txs.push({
-        user_id: user.id,
+        user_id: activeUserId,
         date: current.toISOString().split('T')[0],
         amount: Number(rule.amount),
         notes: rule.name,
