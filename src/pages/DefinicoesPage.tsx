@@ -119,7 +119,7 @@ const DefinicoesPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <PartnershipSection />
+      {!isDemo && <PartnershipSection />}
 
       <Card className="glass-surface">
         <CardHeader>
