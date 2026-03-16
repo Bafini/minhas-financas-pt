@@ -32,7 +32,7 @@ const EventosPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     const txs = await fetchAllRows((s) =>
-      s.from('transactions').select('id, amount, date, macro_group, event_label, notes').eq('user_id', user.id)
+      s.from('transactions').select('id, amount, date, macro_group, event_label, notes').eq('user_id', activeUserId)
     );
     setTransactions(txs);
     setLoading(false);
