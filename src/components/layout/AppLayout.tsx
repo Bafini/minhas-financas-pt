@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { seedCategoriesForUser } from '@/lib/seeds';
 import AppSidebar from '@/components/layout/AppSidebar';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Outlet } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
@@ -29,6 +29,10 @@ const AppLayout: React.FC = () => {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
+        <header className="flex h-12 items-center border-b px-4 md:hidden">
+          <SidebarTrigger />
+          <span className="ml-3 text-sm font-semibold">Finanças</span>
+        </header>
         <div className="flex-1 p-4 md:p-6 lg:p-8">
           <Outlet />
         </div>
