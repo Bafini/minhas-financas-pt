@@ -6,11 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Separator } from '@/components/ui/separator';
 
 const AuthPage: React.FC = () => {
   const { signIn, signUp } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -41,6 +44,20 @@ const AuthPage: React.FC = () => {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setDemoLoading(true);
+    try {
+      // Ensure demo user + data exist
+      await supabase.functions.invoke('seed-demo');
+      await signIn('demo@demo.com', 'demo');
+      toast.success('Sessão demo iniciada');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao iniciar sessão demo');
+    } finally {
+      setDemoLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -48,7 +65,7 @@ const AuthPage: React.FC = () => {
           <CardTitle className="text-2xl font-bold tracking-tight">Soberania Financeira</CardTitle>
           <CardDescription>Gestão de finanças pessoais e familiares</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <Tabs defaultValue="signin">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Entrar</TabsTrigger>
@@ -91,6 +108,23 @@ const AuthPage: React.FC = () => {
               </form>
             </TabsContent>
           </Tabs>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center"><Separator /></div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">ou</span>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleDemoLogin}
+            disabled={demoLoading}
+          >
+            {demoLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
+            Experimentar com conta demo
+          </Button>
         </CardContent>
       </Card>
     </div>

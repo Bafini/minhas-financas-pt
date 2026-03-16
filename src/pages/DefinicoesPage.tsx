@@ -29,7 +29,7 @@ const DATE_FORMATS = [
 ];
 
 const DefinicoesPage: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isDemo } = useAuth();
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
