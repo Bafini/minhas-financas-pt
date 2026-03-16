@@ -164,3 +164,11 @@ body.privacy-mode .financial-value {
 body.privacy-mode .financial-value:hover {
   filter: blur(4px);
 }
+
+/* Privacy mode: blur charts */
+body.privacy-mode .recharts-wrapper {
+  filter: blur(10px);
+  user-select: none;
+  pointer-events: none;
+  transition: filter 0.2s ease;
+}
