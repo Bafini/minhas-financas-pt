@@ -15,6 +15,7 @@ const now = new Date();
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { activeUserId } = useActiveProfile();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [prevTransactions, setPrevTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
