@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
 import { PrivacyProvider } from "@/contexts/PrivacyContext";
 import AuthPage from "./pages/AuthPage";
 import AppLayout from "./components/layout/AppLayout";
