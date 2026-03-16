@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 
 const AppLayout: React.FC = () => {
   const { user } = useAuth();
+  const { isViewingPartner, partner } = useActiveProfile();
   const [seeding, setSeeding] = useState(true);
 
   useEffect(() => {
