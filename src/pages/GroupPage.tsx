@@ -66,13 +66,36 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
     return transactions.filter(t => t.category_id === selectedCategory);
   }, [transactions, selectedCategory]);
 
+  // Find the last date with data in current period and cap prev period accordingly
+  const lastDataDate = useMemo(() => {
+    if (transactions.length === 0) return null;
+    return transactions.reduce((max, t) => t.date > max ? t.date : max, transactions[0].date);
+  }, [transactions]);
+
+  const cappedPrevTransactions = useMemo(() => {
+    if (!lastDataDate || !['YTD', 'QTD', 'STD', 'MTD'].includes(period.preset)) return prevTransactions;
+    const lastDate = new Date(lastDataDate);
+    const capDate = `${period.compareYear}-${String(lastDate.getMonth() + 1).padStart(2, '0')}-${String(lastDate.getDate()).padStart(2, '0')}`;
+    return prevTransactions.filter(t => t.date <= capDate);
+  }, [prevTransactions, lastDataDate, period.compareYear, period.preset]);
+
   const filteredPrevTx = useMemo(() => {
-    if (selectedCategory === 'all') return prevTransactions;
-    return prevTransactions.filter(t => t.category_id === selectedCategory);
-  }, [prevTransactions, selectedCategory]);
+    if (selectedCategory === 'all') return cappedPrevTransactions;
+    return cappedPrevTransactions.filter(t => t.category_id === selectedCategory);
+  }, [cappedPrevTransactions, selectedCategory]);
 
   const total = useMemo(() => filteredTx.reduce((s, t) => s + Number(t.amount), 0), [filteredTx]);
   const prevTotal = useMemo(() => filteredPrevTx.reduce((s, t) => s + Number(t.amount), 0), [filteredPrevTx]);
+
+  // Count distinct months with data for average
+  const activeMonths = useMemo(() => {
+    const months = new Set(filteredTx.map(t => new Date(t.date).getMonth()));
+    return Math.max(months.size, 1);
+  }, [filteredTx]);
+  const prevActiveMonths = useMemo(() => {
+    const months = new Set(filteredPrevTx.map(t => new Date(t.date).getMonth()));
+    return Math.max(months.size, 1);
+  }, [filteredPrevTx]);
 
   const byCat = useMemo(() => {
     const map: Record<string, { name: string; total: number; prevTotal: number }> = {};
