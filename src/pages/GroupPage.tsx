@@ -153,7 +153,7 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
 
       <div className="grid gap-4 sm:grid-cols-3">
         <KPICard title={`Total ${title}`} value={total} previousValue={prevTotal} icon={Icon} variant={variant} />
-        <KPICard title="Média Mensal" value={total / 12} previousValue={prevTotal / 12} icon={Icon} variant={variant} />
+        <KPICard title="Média Mensal" value={total / activeMonths} previousValue={prevTotal / prevActiveMonths} icon={Icon} variant={variant} />
         <KPICard title="Transações" value={filteredTx.length} previousValue={filteredPrevTx.length} format="number" variant="neutral" />
       </div>
 
