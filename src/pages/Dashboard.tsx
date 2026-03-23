@@ -43,8 +43,21 @@ const Dashboard: React.FC = () => {
     });
   }, [user, activeUserId, range]);
 
+  // Cap prev transactions to comparable period based on last data date
+  const lastDataDate = useMemo(() => {
+    if (transactions.length === 0) return null;
+    return transactions.reduce((max, t) => t.date > max ? t.date : max, transactions[0].date);
+  }, [transactions]);
+
+  const cappedPrevTransactions = useMemo(() => {
+    if (!lastDataDate || !['YTD', 'QTD', 'STD', 'MTD'].includes(period.preset)) return prevTransactions;
+    const lastDate = new Date(lastDataDate);
+    const capDate = `${period.compareYear}-${String(lastDate.getMonth() + 1).padStart(2, '0')}-${String(lastDate.getDate()).padStart(2, '0')}`;
+    return prevTransactions.filter(t => t.date <= capDate);
+  }, [prevTransactions, lastDataDate, period.compareYear, period.preset]);
+
   const summary = useMemo(() => calculateSummary(transactions), [transactions]);
-  const prevSummary = useMemo(() => calculateSummary(prevTransactions), [prevTransactions]);
+  const prevSummary = useMemo(() => calculateSummary(cappedPrevTransactions), [cappedPrevTransactions]);
 
   const monthlyData = useMemo(() => {
     const months: Record<number, { rendimentos: number; despesas: number; investimentos: number }> = {};
