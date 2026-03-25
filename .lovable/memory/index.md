@@ -12,19 +12,21 @@ Financial management platform (Soberania Financeira) - PT-PT, EUR, DD/MM/YYYY fo
 - No donut charts for complex data; use bars/treemaps
 
 ## Database
-- 11 tables: profiles, categories, subcategories, transactions, imports, import_rows, recurring_rules, budgets, event_labels, saved_filters, fuel_cards
+- 12 tables: profiles, categories, subcategories, transactions, imports, import_rows, recurring_rules, budgets, event_labels, saved_filters, fuel_cards, card_expense_subcategories
 - Enums: macro_group (Rendimentos/Investimentos/Despesas), frequency_type
 - All tables have RLS per user_id
 - Auto-profile creation on signup trigger
 - Categories seeded per user on first login
 - transactions has: fuel_card_id, linked_transaction_id, auto_generated columns
+- fuel_cards has: card_type (combustivel/oferta/outro), linked to expense subcategories via card_expense_subcategories junction table
+- profiles has: movements_updated_until (date) for tracking when movements were last updated
 
 ## Architecture
 - Auth: AuthContext with Supabase auth
-- Pages: Dashboard, Movimentos, Comparações, Rendimentos, Despesas, Investimentos, Categorias, Orçamentos, Recorrências, Cartões Combustível, Eventos, Integrações, Definições
+- Pages: Dashboard, Movimentos, Comparações, Rendimentos, Despesas, Investimentos, Categorias, Orçamentos, Recorrências, Cartões (/cartoes), Eventos, Integrações, Definições
 - Lib: formatters.ts, calculations.ts, queries.ts, seeds.ts, fuelCardHelpers.ts, supabaseHelpers.ts
 - CSV import with PapaParse, duplicate detection, category auto-creation
-- Fuel cards: auto-generate income transactions when fuel expense with card, capped at monthly_limit
+- Cards: generic cards (combustivel/oferta/outro) with expense subcategory associations. Auto-generate income transactions when expense with card, capped at monthly_limit
 
 ## Anti-patterns
 - No modals for tx editing (use Sheets)

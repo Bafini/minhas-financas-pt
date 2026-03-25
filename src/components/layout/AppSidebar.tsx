@@ -30,7 +30,7 @@ import {
   BarChart3,
   EyeOff,
   Eye,
-  Fuel,
+  CreditCard,
   Users,
   ArrowRightLeft,
 } from 'lucide-react';
