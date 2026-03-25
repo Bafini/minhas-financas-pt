@@ -189,7 +189,7 @@ const MovimentosPage: React.FC = () => {
 
   const handleInlineSave = async () => {
     if (!user || !inlineAmount || !inlineDate) return;
-    const fuelCardIdValue = isFuelSubcategory(inlineSubcategory, inlineMacroGroup) && inlineFuelCardId ? inlineFuelCardId : null;
+    const fuelCardIdValue = hasCards(inlineSubcategory, inlineMacroGroup) && inlineFuelCardId ? inlineFuelCardId : null;
     const payload = {
       user_id: activeUserId,
       date: inlineDate,
