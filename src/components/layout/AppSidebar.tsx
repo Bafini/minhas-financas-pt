@@ -54,7 +54,7 @@ const manageNav = [
   { title: 'Categorias', icon: FolderTree, path: '/categorias' },
   { title: 'Orçamentos', icon: Target, path: '/orcamentos' },
   { title: 'Recorrências', icon: Repeat, path: '/recorrencias' },
-  { title: 'Cartões Combustível', icon: Fuel, path: '/cartoes-combustivel' },
+  { title: 'Cartões', icon: Fuel, path: '/cartoes' },
   { title: 'Eventos', icon: Tag, path: '/eventos' },
   { title: 'Integrações', icon: Upload, path: '/integracoes' },
   { title: 'Definições', icon: Settings, path: '/definicoes' },

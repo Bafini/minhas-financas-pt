@@ -247,7 +247,22 @@ const MovimentosPage: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight">Movimentos</h1>
           <p className="text-sm text-muted-foreground">{count} transações encontradas</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Atualizado até:</span>
+            <Input
+              type="date"
+              value={movementsUpdatedUntil}
+              onChange={async (e) => {
+                const val = e.target.value;
+                setMovementsUpdatedUntil(val);
+                await supabase.from('profiles').update({ movements_updated_until: val || null }).eq('user_id', activeUserId);
+                toast.success('Data de atualização guardada');
+              }}
+              className="h-8 w-[150px] text-sm"
+            />
+          </div>
           <Button variant="outline" onClick={() => setInlineOpen(!inlineOpen)}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar Rápido
