@@ -25,6 +25,11 @@ const CARD_TYPES = [
   { value: 'outro', label: 'Outro' },
 ];
 
+const LIMIT_TYPES = [
+  { value: 'monthly', label: 'Mensal (recorrente)' },
+  { value: 'one_time', label: 'Único (uma vez)' },
+];
+
 const CartoesPage: React.FC = () => {
   const { user } = useAuth();
   const { activeUserId } = useActiveProfile();

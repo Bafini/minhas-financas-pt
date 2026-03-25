@@ -6,6 +6,7 @@ export interface FuelCard {
   card_name: string;
   card_type: string;
   monthly_limit: number;
+  limit_type: 'monthly' | 'one_time';
   income_subcategory_id: string | null;
   effective_from: string;
   effective_to: string | null;
@@ -14,6 +15,7 @@ export interface FuelCard {
   updated_at: string | null;
   subcategories?: { id: string; name: string; category_id: string } | null;
   expense_subcategory_ids?: string[];
+  _totalSpentAllTime?: number; // populated for one_time cards to check exhaustion
 }
 
 export async function fetchFuelCards(userId: string): Promise<FuelCard[]> {
