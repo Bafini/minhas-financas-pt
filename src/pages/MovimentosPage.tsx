@@ -352,6 +352,19 @@ const MovimentosPage: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </TableCell>
+                {showInlineCard && (
+                <TableCell>
+                  <Select value={inlineFuelCardId || 'none'} onValueChange={v => setInlineFuelCardId(v === 'none' ? '' : v)}>
+                    <SelectTrigger className="h-8 text-xs w-[120px]"><SelectValue placeholder="Cartão" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {inlineAvailableCards.map(fc => (
+                        <SelectItem key={fc.id} value={fc.id}>{fc.card_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                )}
                 <TableCell>
                   <Input
                     type="number"
