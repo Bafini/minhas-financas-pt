@@ -171,6 +171,7 @@ export type Database = {
           id: string
           income_subcategory_id: string | null
           is_active: boolean
+          limit_type: string
           monthly_limit: number
           updated_at: string | null
           user_id: string
@@ -184,6 +185,7 @@ export type Database = {
           id?: string
           income_subcategory_id?: string | null
           is_active?: boolean
+          limit_type?: string
           monthly_limit: number
           updated_at?: string | null
           user_id: string
@@ -197,6 +199,7 @@ export type Database = {
           id?: string
           income_subcategory_id?: string | null
           is_active?: boolean
+          limit_type?: string
           monthly_limit?: number
           updated_at?: string | null
           user_id?: string

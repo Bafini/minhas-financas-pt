@@ -25,6 +25,11 @@ const CARD_TYPES = [
   { value: 'outro', label: 'Outro' },
 ];
 
+const LIMIT_TYPES = [
+  { value: 'monthly', label: 'Mensal (recorrente)' },
+  { value: 'one_time', label: 'Único (uma vez)' },
+];
+
 const CartoesPage: React.FC = () => {
   const { user } = useAuth();
   const { activeUserId } = useActiveProfile();
@@ -38,6 +43,7 @@ const CartoesPage: React.FC = () => {
   // Form state
   const [formName, setFormName] = useState('');
   const [formType, setFormType] = useState('combustivel');
+  const [formLimitType, setFormLimitType] = useState<'monthly' | 'one_time'>('monthly');
   const [formLimit, setFormLimit] = useState('');
   const [formSubcategoryId, setFormSubcategoryId] = useState('');
   const [formFrom, setFormFrom] = useState(new Date().toISOString().split('T')[0]);
@@ -88,6 +94,7 @@ const CartoesPage: React.FC = () => {
     setEditCard(null);
     setFormName('');
     setFormType('combustivel');
+    setFormLimitType('monthly');
     setFormLimit('');
     setFormSubcategoryId('');
     setFormFrom(new Date().toISOString().split('T')[0]);
@@ -101,6 +108,7 @@ const CartoesPage: React.FC = () => {
     setEditCard(card);
     setFormName(card.card_name);
     setFormType(card.card_type || 'combustivel');
+    setFormLimitType(card.limit_type || 'monthly');
     setFormLimit(String(card.monthly_limit));
     setFormSubcategoryId(card.income_subcategory_id || '');
     setFormFrom(card.effective_from);
@@ -122,6 +130,7 @@ const CartoesPage: React.FC = () => {
       user_id: activeUserId,
       card_name: formName,
       card_type: formType,
+      limit_type: formLimitType,
       monthly_limit: parseFloat(formLimit),
       income_subcategory_id: formSubcategoryId || null,
       effective_from: formFrom,
@@ -238,6 +247,7 @@ const CartoesPage: React.FC = () => {
                         </div>
                         <div className="flex gap-1">
                           <Badge variant="outline" className="text-xs">{cardTypeLabel(s.card.card_type)}</Badge>
+                          <Badge variant="outline" className="text-xs">{s.card.limit_type === 'one_time' ? 'Único' : 'Mensal'}</Badge>
                           {!s.card.is_active && (
                             <Badge variant="secondary" className="text-xs">Inativo</Badge>
                           )}
@@ -259,9 +269,13 @@ const CartoesPage: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-muted-foreground text-xs">Disponível</p>
-                          <p className={cn("financial-value font-medium", s.remaining > 0 ? "text-income" : "text-muted-foreground")}>
-                            {formatCurrency(s.remaining)}
-                          </p>
+                          {s.isExhausted ? (
+                            <Badge variant="destructive" className="text-xs mt-1">Esgotado</Badge>
+                          ) : (
+                            <p className={cn("financial-value font-medium", s.remaining > 0 ? "text-income" : "text-muted-foreground")}>
+                              {formatCurrency(s.remaining)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -300,6 +314,7 @@ const CartoesPage: React.FC = () => {
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">{card.card_name}</span>
                         <Badge variant="outline" className="text-xs">{cardTypeLabel(card.card_type)}</Badge>
+                        <Badge variant="outline" className="text-xs">{card.limit_type === 'one_time' ? 'Único' : 'Mensal'}</Badge>
                         {!card.is_active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -344,19 +359,32 @@ const CartoesPage: React.FC = () => {
               <Label>Nome do Cartão</Label>
               <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Cartão X" />
             </div>
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={formType} onValueChange={setFormType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CARD_TYPES.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <Select value={formType} onValueChange={setFormType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CARD_TYPES.map(t => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo de Plafond</Label>
+                <Select value={formLimitType} onValueChange={(v: 'monthly' | 'one_time') => setFormLimitType(v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {LIMIT_TYPES.map(t => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-2">
-              <Label>Plafond Mensal (€)</Label>
+              <Label>Plafond (€)</Label>
               <Input type="number" step="0.01" value={formLimit} onChange={e => setFormLimit(e.target.value)} />
             </div>
             <div className="space-y-2">

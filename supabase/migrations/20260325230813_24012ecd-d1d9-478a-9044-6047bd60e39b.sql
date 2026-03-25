@@ -1,0 +1,1 @@
+ALTER TABLE public.fuel_cards ADD COLUMN limit_type text NOT NULL DEFAULT 'monthly' CHECK (limit_type IN ('monthly', 'one_time'));

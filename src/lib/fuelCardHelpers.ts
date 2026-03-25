@@ -6,6 +6,7 @@ export interface FuelCard {
   card_name: string;
   card_type: string;
   monthly_limit: number;
+  limit_type: 'monthly' | 'one_time';
   income_subcategory_id: string | null;
   effective_from: string;
   effective_to: string | null;
@@ -14,6 +15,7 @@ export interface FuelCard {
   updated_at: string | null;
   subcategories?: { id: string; name: string; category_id: string } | null;
   expense_subcategory_ids?: string[];
+  _totalSpentAllTime?: number; // populated for one_time cards to check exhaustion
 }
 
 export async function fetchFuelCards(userId: string): Promise<FuelCard[]> {
@@ -36,9 +38,29 @@ export async function fetchFuelCards(userId: string): Promise<FuelCard[]> {
     mappingsByCard[m.card_id].push(m.subcategory_id);
   }
 
+  // For one_time cards, fetch total spent all time to check exhaustion
+  const oneTimeCardIds = (data || []).filter(c => c.limit_type === 'one_time').map(c => c.id);
+  const spentByCard: Record<string, number> = {};
+
+  if (oneTimeCardIds.length > 0) {
+    const { data: expenses } = await supabase
+      .from('transactions')
+      .select('fuel_card_id, amount')
+      .eq('user_id', userId)
+      .eq('macro_group', 'Despesas')
+      .in('fuel_card_id', oneTimeCardIds);
+
+    for (const tx of expenses || []) {
+      if (tx.fuel_card_id) {
+        spentByCard[tx.fuel_card_id] = (spentByCard[tx.fuel_card_id] || 0) + Number(tx.amount);
+      }
+    }
+  }
+
   return (data || []).map(card => ({
     ...card,
     expense_subcategory_ids: mappingsByCard[card.id] || [],
+    _totalSpentAllTime: card.limit_type === 'one_time' ? (spentByCard[card.id] || 0) : undefined,
   })) as FuelCard[];
 }
 
@@ -46,14 +68,22 @@ export async function fetchFuelCards(userId: string): Promise<FuelCard[]> {
  * Get cards that are linked to a specific expense subcategory
  */
 export function getCardsForSubcategory(cards: FuelCard[], subcategoryId: string): FuelCard[] {
-  return cards.filter(c => c.is_active && (c.expense_subcategory_ids || []).includes(subcategoryId));
+  return cards.filter(c => {
+    if (!c.is_active) return false;
+    if (!(c.expense_subcategory_ids || []).includes(subcategoryId)) return false;
+    // For one_time cards, check if plafond is exhausted
+    if (c.limit_type === 'one_time' && c._totalSpentAllTime != null && c._totalSpentAllTime >= Number(c.monthly_limit)) {
+      return false;
+    }
+    return true;
+  });
 }
 
 /**
  * Check if a subcategory has any cards linked to it
  */
 export function hasCardsForSubcategory(cards: FuelCard[], subcategoryId: string): boolean {
-  return cards.some(c => c.is_active && (c.expense_subcategory_ids || []).includes(subcategoryId));
+  return getCardsForSubcategory(cards, subcategoryId).length > 0;
 }
 
 /**
@@ -179,7 +209,10 @@ export async function getFuelCardMonthlySummary(
 
     const effectiveStart = card.effective_from > startDate ? card.effective_from : startDate;
 
-    const { data: expenses } = await supabase
+    // For one_time cards, get total spent since effective_from (all time)
+    const isOneTime = card.limit_type === 'one_time';
+
+    const { data: monthExpenses } = await supabase
       .from('transactions')
       .select('amount')
       .eq('user_id', userId)
@@ -188,16 +221,36 @@ export async function getFuelCardMonthlySummary(
       .gte('date', effectiveStart)
       .lte('date', endDate);
 
-    const totalSpent = (expenses || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
-    const recognized = Math.min(totalSpent, Number(card.monthly_limit));
-    const remaining = Math.max(0, Number(card.monthly_limit) - totalSpent);
+    const totalSpentMonth = (monthExpenses || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
+
+    let totalSpentAllTime = totalSpentMonth;
+    if (isOneTime) {
+      const { data: allExpenses } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('user_id', userId)
+        .eq('fuel_card_id', card.id)
+        .eq('macro_group', 'Despesas')
+        .gte('date', card.effective_from);
+      totalSpentAllTime = (allExpenses || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
+    }
+
+    const limit = Number(card.monthly_limit);
+    const recognized = isOneTime
+      ? Math.min(totalSpentAllTime, limit)
+      : Math.min(totalSpentMonth, limit);
+    const remaining = isOneTime
+      ? Math.max(0, limit - totalSpentAllTime)
+      : Math.max(0, limit - totalSpentMonth);
 
     summaries.push({
       card,
-      totalSpent,
+      totalSpent: isOneTime ? totalSpentAllTime : totalSpentMonth,
+      totalSpentMonth,
       recognized,
       remaining,
-      monthlyLimit: Number(card.monthly_limit),
+      monthlyLimit: limit,
+      isExhausted: isOneTime && totalSpentAllTime >= limit,
     });
   }
 
