@@ -43,6 +43,7 @@ const CartoesPage: React.FC = () => {
   // Form state
   const [formName, setFormName] = useState('');
   const [formType, setFormType] = useState('combustivel');
+  const [formLimitType, setFormLimitType] = useState<'monthly' | 'one_time'>('monthly');
   const [formLimit, setFormLimit] = useState('');
   const [formSubcategoryId, setFormSubcategoryId] = useState('');
   const [formFrom, setFormFrom] = useState(new Date().toISOString().split('T')[0]);
