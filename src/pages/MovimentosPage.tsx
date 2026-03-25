@@ -135,7 +135,7 @@ const MovimentosPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!user) return;
-    const fuelCardIdValue = isFuelSubcategory(formSubcategory, formMacroGroup) && formFuelCardId ? formFuelCardId : null;
+    const fuelCardIdValue = hasCards(formSubcategory, formMacroGroup) && formFuelCardId ? formFuelCardId : null;
     const payload = {
       user_id: activeUserId,
       date: formDate,
