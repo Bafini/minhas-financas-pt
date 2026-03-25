@@ -219,18 +219,13 @@ const MovimentosPage: React.FC = () => {
     }
   };
 
-  // Helper: check if a subcategory name is "Combustível" under Despesas
-  const isFuelSubcategory = (subcatId: string, mg: string) => {
+  // Helper: check if subcategory has cards linked
+  const hasCards = (subcatId: string, mg: string) => {
     if (mg !== 'Despesas' || !subcatId) return false;
-    for (const cat of categories) {
-      if (cat.group_type !== 'Despesas') continue;
-      const sub = (cat.subcategories || []).find((s: any) => s.id === subcatId);
-      if (sub && sub.name.toLowerCase().includes('combustível')) return true;
-    }
-    return false;
+    return hasCardsForSubcategory(fuelCards, subcatId);
   };
 
-  const activeFuelCards = fuelCards.filter(fc => fc.is_active);
+  const getAvailableCards = (subcatId: string) => getCardsForSubcategory(fuelCards, subcatId);
 
   const inlineCatOptions = categories.filter(c => c.group_type === inlineMacroGroup);
   const inlineSelectedCat = categories.find(c => c.id === inlineCategory);
