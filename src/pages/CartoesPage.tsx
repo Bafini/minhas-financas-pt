@@ -94,6 +94,7 @@ const CartoesPage: React.FC = () => {
     setEditCard(null);
     setFormName('');
     setFormType('combustivel');
+    setFormLimitType('monthly');
     setFormLimit('');
     setFormSubcategoryId('');
     setFormFrom(new Date().toISOString().split('T')[0]);
