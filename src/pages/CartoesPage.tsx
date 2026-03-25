@@ -377,9 +377,8 @@ const CartoesPage: React.FC = () => {
                 </Select>
               </div>
             </div>
-            </div>
             <div className="space-y-2">
-              <Label>Plafond Mensal (€)</Label>
+              <Label>Plafond (€)</Label>
               <Input type="number" step="0.01" value={formLimit} onChange={e => setFormLimit(e.target.value)} />
             </div>
             <div className="space-y-2">
