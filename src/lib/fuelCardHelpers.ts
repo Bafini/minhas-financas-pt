@@ -68,7 +68,15 @@ export async function fetchFuelCards(userId: string): Promise<FuelCard[]> {
  * Get cards that are linked to a specific expense subcategory
  */
 export function getCardsForSubcategory(cards: FuelCard[], subcategoryId: string): FuelCard[] {
-  return cards.filter(c => c.is_active && (c.expense_subcategory_ids || []).includes(subcategoryId));
+  return cards.filter(c => {
+    if (!c.is_active) return false;
+    if (!(c.expense_subcategory_ids || []).includes(subcategoryId)) return false;
+    // For one_time cards, check if plafond is exhausted
+    if (c.limit_type === 'one_time' && c._totalSpentAllTime != null && c._totalSpentAllTime >= Number(c.monthly_limit)) {
+      return false;
+    }
+    return true;
+  });
 }
 
 /**
