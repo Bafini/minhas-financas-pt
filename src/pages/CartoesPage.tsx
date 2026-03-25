@@ -130,6 +130,7 @@ const CartoesPage: React.FC = () => {
       user_id: activeUserId,
       card_name: formName,
       card_type: formType,
+      limit_type: formLimitType,
       monthly_limit: parseFloat(formLimit),
       income_subcategory_id: formSubcategoryId || null,
       effective_from: formFrom,
