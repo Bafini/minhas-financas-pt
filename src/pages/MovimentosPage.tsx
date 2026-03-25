@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { fetchTransactions, fetchCategories, TransactionRow } from '@/lib/queries';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { fetchFuelCards, recalculateFuelCardIncome, FuelCard } from '@/lib/fuelCardHelpers';
+import { fetchFuelCards, recalculateFuelCardIncome, FuelCard, getCardsForSubcategory, hasCardsForSubcategory } from '@/lib/fuelCardHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Check, X } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Check, X, CalendarClock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MacroGroup } from '@/lib/calculations';
 
@@ -67,8 +67,9 @@ const MovimentosPage: React.FC = () => {
   const [inlineNotes, setInlineNotes] = useState('');
   const [inlineFuelCardId, setInlineFuelCardId] = useState('');
 
-  // Fuel cards
+  // Cards
   const [fuelCards, setFuelCards] = useState<FuelCard[]>([]);
+  const [movementsUpdatedUntil, setMovementsUpdatedUntil] = useState('');
 
   const pageSize = 50;
 
@@ -76,7 +77,7 @@ const MovimentosPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [txResult, cats, fc] = await Promise.all([
+      const [txResult, cats, fc, profileRes] = await Promise.all([
         fetchTransactions(activeUserId, {
           search: search || undefined,
           macroGroup: (macroGroup as MacroGroup) || undefined,
@@ -88,11 +89,15 @@ const MovimentosPage: React.FC = () => {
         }),
         fetchCategories(activeUserId),
         fetchFuelCards(activeUserId),
+        supabase.from('profiles').select('movements_updated_until').eq('user_id', activeUserId).single(),
       ]);
       setTransactions(txResult.data);
       setCount(txResult.count);
       setCategories(cats || []);
       setFuelCards(fc);
+      if (profileRes.data?.movements_updated_until) {
+        setMovementsUpdatedUntil(profileRes.data.movements_updated_until);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -130,7 +135,7 @@ const MovimentosPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!user) return;
-    const fuelCardIdValue = isFuelSubcategory(formSubcategory, formMacroGroup) && formFuelCardId ? formFuelCardId : null;
+    const fuelCardIdValue = hasCards(formSubcategory, formMacroGroup) && formFuelCardId ? formFuelCardId : null;
     const payload = {
       user_id: activeUserId,
       date: formDate,
@@ -184,7 +189,7 @@ const MovimentosPage: React.FC = () => {
 
   const handleInlineSave = async () => {
     if (!user || !inlineAmount || !inlineDate) return;
-    const fuelCardIdValue = isFuelSubcategory(inlineSubcategory, inlineMacroGroup) && inlineFuelCardId ? inlineFuelCardId : null;
+    const fuelCardIdValue = hasCards(inlineSubcategory, inlineMacroGroup) && inlineFuelCardId ? inlineFuelCardId : null;
     const payload = {
       user_id: activeUserId,
       date: inlineDate,
@@ -214,27 +219,24 @@ const MovimentosPage: React.FC = () => {
     }
   };
 
-  // Helper: check if a subcategory name is "Combustível" under Despesas
-  const isFuelSubcategory = (subcatId: string, mg: string) => {
+  // Helper: check if subcategory has cards linked
+  const hasCards = (subcatId: string, mg: string) => {
     if (mg !== 'Despesas' || !subcatId) return false;
-    for (const cat of categories) {
-      if (cat.group_type !== 'Despesas') continue;
-      const sub = (cat.subcategories || []).find((s: any) => s.id === subcatId);
-      if (sub && sub.name.toLowerCase().includes('combustível')) return true;
-    }
-    return false;
+    return hasCardsForSubcategory(fuelCards, subcatId);
   };
 
-  const activeFuelCards = fuelCards.filter(fc => fc.is_active);
+  const getAvailableCards = (subcatId: string) => getCardsForSubcategory(fuelCards, subcatId);
 
   const inlineCatOptions = categories.filter(c => c.group_type === inlineMacroGroup);
   const inlineSelectedCat = categories.find(c => c.id === inlineCategory);
   const inlineSubcats = inlineSelectedCat?.subcategories || [];
-  const showInlineFuelCard = isFuelSubcategory(inlineSubcategory, inlineMacroGroup);
+  const showInlineCard = hasCards(inlineSubcategory, inlineMacroGroup);
+  const inlineAvailableCards = getAvailableCards(inlineSubcategory);
 
   const selectedCat = categories.find(c => c.id === formCategory);
   const subcats = selectedCat?.subcategories || [];
-  const showFormFuelCard = isFuelSubcategory(formSubcategory, formMacroGroup);
+  const showFormCard = hasCards(formSubcategory, formMacroGroup);
+  const formAvailableCards = getAvailableCards(formSubcategory);
 
   const totalPages = Math.ceil(count / pageSize);
 
@@ -245,7 +247,22 @@ const MovimentosPage: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight">Movimentos</h1>
           <p className="text-sm text-muted-foreground">{count} transações encontradas</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Atualizado até:</span>
+            <Input
+              type="date"
+              value={movementsUpdatedUntil}
+              onChange={async (e) => {
+                const val = e.target.value;
+                setMovementsUpdatedUntil(val);
+                await supabase.from('profiles').update({ movements_updated_until: val || null }).eq('user_id', activeUserId);
+                toast.success('Data de atualização guardada');
+              }}
+              className="h-8 w-[150px] text-sm"
+            />
+          </div>
           <Button variant="outline" onClick={() => setInlineOpen(!inlineOpen)}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar Rápido
@@ -335,6 +352,19 @@ const MovimentosPage: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </TableCell>
+                {showInlineCard && (
+                <TableCell>
+                  <Select value={inlineFuelCardId || 'none'} onValueChange={v => setInlineFuelCardId(v === 'none' ? '' : v)}>
+                    <SelectTrigger className="h-8 text-xs w-[120px]"><SelectValue placeholder="Cartão" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {inlineAvailableCards.map(fc => (
+                        <SelectItem key={fc.id} value={fc.id}>{fc.card_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                )}
                 <TableCell>
                   <Input
                     type="number"
@@ -460,14 +490,14 @@ const MovimentosPage: React.FC = () => {
                 </Select>
               </div>
             )}
-            {showFormFuelCard && (
+            {showFormCard && (
               <div className="space-y-2">
-                <Label>Cartão de Combustível</Label>
+                <Label>Cartão</Label>
                 <Select value={formFuelCardId || 'none'} onValueChange={v => setFormFuelCardId(v === 'none' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
-                    {activeFuelCards.map(fc => (
+                    {formAvailableCards.map(fc => (
                       <SelectItem key={fc.id} value={fc.id}>{fc.card_name}</SelectItem>
                     ))}
                   </SelectContent>

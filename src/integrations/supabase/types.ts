@@ -65,6 +65,45 @@ export type Database = {
           },
         ]
       }
+      card_expense_subcategories: {
+        Row: {
+          card_id: string
+          created_at: string | null
+          id: string
+          subcategory_id: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string | null
+          id?: string
+          subcategory_id: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string | null
+          id?: string
+          subcategory_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_expense_subcategories_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "fuel_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_expense_subcategories_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -125,6 +164,7 @@ export type Database = {
       fuel_cards: {
         Row: {
           card_name: string
+          card_type: string
           created_at: string | null
           effective_from: string
           effective_to: string | null
@@ -137,6 +177,7 @@ export type Database = {
         }
         Insert: {
           card_name: string
+          card_type?: string
           created_at?: string | null
           effective_from?: string
           effective_to?: string | null
@@ -149,6 +190,7 @@ export type Database = {
         }
         Update: {
           card_name?: string
+          card_type?: string
           created_at?: string | null
           effective_from?: string
           effective_to?: string | null
@@ -291,6 +333,7 @@ export type Database = {
           display_name: string | null
           id: string
           locale: string | null
+          movements_updated_until: string | null
           updated_at: string | null
           user_id: string
         }
@@ -302,6 +345,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           locale?: string | null
+          movements_updated_until?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -313,6 +357,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           locale?: string | null
+          movements_updated_until?: string | null
           updated_at?: string | null
           user_id?: string
         }

@@ -14,13 +14,20 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Fuel, CreditCard } from 'lucide-react';
+import { Plus, Pencil, Trash2, CreditCard, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const CartoesCombustivelPage: React.FC = () => {
+const CARD_TYPES = [
+  { value: 'combustivel', label: 'Combustível' },
+  { value: 'oferta', label: 'Oferta' },
+  { value: 'outro', label: 'Outro' },
+];
+
+const CartoesPage: React.FC = () => {
   const { user } = useAuth();
-  const { activeUserId, canWrite } = useActiveProfile();
+  const { activeUserId } = useActiveProfile();
   const [cards, setCards] = useState<FuelCard[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,13 +37,14 @@ const CartoesCombustivelPage: React.FC = () => {
 
   // Form state
   const [formName, setFormName] = useState('');
+  const [formType, setFormType] = useState('combustivel');
   const [formLimit, setFormLimit] = useState('');
   const [formSubcategoryId, setFormSubcategoryId] = useState('');
   const [formFrom, setFormFrom] = useState(new Date().toISOString().split('T')[0]);
   const [formTo, setFormTo] = useState('');
   const [formActive, setFormActive] = useState(true);
+  const [formExpenseSubcatIds, setFormExpenseSubcatIds] = useState<string[]>([]);
 
-  // Month/year for summary
   const now = new Date();
   const [summaryMonth, setSummaryMonth] = useState(now.getMonth() + 1);
   const [summaryYear, setSummaryYear] = useState(now.getFullYear());
@@ -58,7 +66,7 @@ const CartoesCombustivelPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, summaryYear, summaryMonth]);
+  }, [user, activeUserId, summaryYear, summaryMonth]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -69,26 +77,43 @@ const CartoesCombustivelPage: React.FC = () => {
       categoryName: c.name,
     })));
 
+  const expenseSubcategories = categories
+    .filter(c => c.group_type === 'Despesas')
+    .flatMap(c => (c.subcategories || []).map((s: any) => ({
+      ...s,
+      categoryName: c.name,
+    })));
+
   const openNew = () => {
     setEditCard(null);
     setFormName('');
+    setFormType('combustivel');
     setFormLimit('');
     setFormSubcategoryId('');
     setFormFrom(new Date().toISOString().split('T')[0]);
     setFormTo('');
     setFormActive(true);
+    setFormExpenseSubcatIds([]);
     setDialogOpen(true);
   };
 
   const openEdit = (card: FuelCard) => {
     setEditCard(card);
     setFormName(card.card_name);
+    setFormType(card.card_type || 'combustivel');
     setFormLimit(String(card.monthly_limit));
     setFormSubcategoryId(card.income_subcategory_id || '');
     setFormFrom(card.effective_from);
     setFormTo(card.effective_to || '');
     setFormActive(card.is_active);
+    setFormExpenseSubcatIds(card.expense_subcategory_ids || []);
     setDialogOpen(true);
+  };
+
+  const toggleExpenseSubcat = (id: string) => {
+    setFormExpenseSubcatIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
   };
 
   const handleSave = async () => {
@@ -96,6 +121,7 @@ const CartoesCombustivelPage: React.FC = () => {
     const payload = {
       user_id: activeUserId,
       card_name: formName,
+      card_type: formType,
       monthly_limit: parseFloat(formLimit),
       income_subcategory_id: formSubcategoryId || null,
       effective_from: formFrom,
@@ -104,15 +130,31 @@ const CartoesCombustivelPage: React.FC = () => {
     };
 
     try {
+      let cardId: string;
       if (editCard) {
         const { error } = await supabase.from('fuel_cards').update(payload).eq('id', editCard.id);
         if (error) throw error;
+        cardId = editCard.id;
         toast.success('Cartão atualizado');
       } else {
-        const { error } = await supabase.from('fuel_cards').insert(payload);
+        const { data, error } = await supabase.from('fuel_cards').insert(payload).select('id').single();
         if (error) throw error;
+        cardId = data.id;
         toast.success('Cartão criado');
       }
+
+      // Sync expense subcategory mappings
+      await supabase.from('card_expense_subcategories').delete().eq('card_id', cardId);
+      if (formExpenseSubcatIds.length > 0) {
+        const rows = formExpenseSubcatIds.map(sid => ({
+          card_id: cardId,
+          subcategory_id: sid,
+          user_id: activeUserId,
+        }));
+        const { error: mapErr } = await supabase.from('card_expense_subcategories').insert(rows);
+        if (mapErr) throw mapErr;
+      }
+
       setDialogOpen(false);
       loadData();
     } catch (err: any) {
@@ -121,7 +163,7 @@ const CartoesCombustivelPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Eliminar este cartão de combustível?')) return;
+    if (!confirm('Eliminar este cartão?')) return;
     const { error } = await supabase.from('fuel_cards').delete().eq('id', id);
     if (error) {
       toast.error(error.message);
@@ -130,6 +172,8 @@ const CartoesCombustivelPage: React.FC = () => {
       loadData();
     }
   };
+
+  const cardTypeLabel = (type: string) => CARD_TYPES.find(t => t.value === type)?.label || type;
 
   const monthNames = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -140,7 +184,7 @@ const CartoesCombustivelPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Cartões de Combustível</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Cartões</h1>
           <p className="text-sm text-muted-foreground">Gestão de cartões e plafonds mensais</p>
         </div>
         <Button onClick={openNew}>
@@ -154,7 +198,7 @@ const CartoesCombustivelPage: React.FC = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Fuel className="h-5 w-5" />
+              <Wallet className="h-5 w-5" />
               Resumo Mensal
             </CardTitle>
             <div className="flex gap-2">
@@ -192,9 +236,12 @@ const CartoesCombustivelPage: React.FC = () => {
                           <CreditCard className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium text-sm">{s.card.card_name}</span>
                         </div>
-                        {!s.card.is_active && (
-                          <Badge variant="secondary" className="text-xs">Inativo</Badge>
-                        )}
+                        <div className="flex gap-1">
+                          <Badge variant="outline" className="text-xs">{cardTypeLabel(s.card.card_type)}</Badge>
+                          {!s.card.is_active && (
+                            <Badge variant="secondary" className="text-xs">Inativo</Badge>
+                          )}
+                        </div>
                       </div>
                       <Progress value={pct} className="h-2" />
                       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -235,34 +282,52 @@ const CartoesCombustivelPage: React.FC = () => {
           {loading ? (
             <p className="text-sm text-muted-foreground">A carregar...</p>
           ) : cards.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum cartão de combustível configurado.</p>
+            <p className="text-sm text-muted-foreground">Nenhum cartão configurado.</p>
           ) : (
             <div className="space-y-3">
-              {cards.map(card => (
-                <div key={card.id} className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{card.card_name}</span>
-                      {!card.is_active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
+              {cards.map(card => {
+                const expSubNames = (card.expense_subcategory_ids || []).map(id => {
+                  for (const cat of categories) {
+                    const sub = (cat.subcategories || []).find((s: any) => s.id === id);
+                    if (sub) return sub.name;
+                  }
+                  return '?';
+                });
+                return (
+                  <div key={card.id} className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{card.card_name}</span>
+                        <Badge variant="outline" className="text-xs">{cardTypeLabel(card.card_type)}</Badge>
+                        {!card.is_active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                        <span>Plafond: {formatCurrency(Number(card.monthly_limit))}</span>
+                        <span>Rendimento: {card.subcategories?.name || '—'}</span>
+                        <span>Desde: {card.effective_from}</span>
+                        {card.effective_to && <span>Até: {card.effective_to}</span>}
+                      </div>
+                      {expSubNames.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          <span className="text-xs text-muted-foreground">Despesas:</span>
+                          {expSubNames.map((name, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">{name}</Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex gap-4 text-sm text-muted-foreground">
-                      <span>Plafond: {formatCurrency(Number(card.monthly_limit))}</span>
-                      <span>Subcategoria: {card.subcategories?.name || '—'}</span>
-                      <span>Desde: {card.effective_from}</span>
-                      {card.effective_to && <span>Até: {card.effective_to}</span>}
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(card)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(card.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(card)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(card.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -270,9 +335,9 @@ const CartoesCombustivelPage: React.FC = () => {
 
       {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editCard ? 'Editar Cartão' : 'Novo Cartão de Combustível'}</DialogTitle>
+            <DialogTitle>{editCard ? 'Editar Cartão' : 'Novo Cartão'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
@@ -280,8 +345,37 @@ const CartoesCombustivelPage: React.FC = () => {
               <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Cartão X" />
             </div>
             <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={formType} onValueChange={setFormType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CARD_TYPES.map(t => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Plafond Mensal (€)</Label>
               <Input type="number" step="0.01" value={formLimit} onChange={e => setFormLimit(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Subcategorias de Despesa Associadas</Label>
+              <p className="text-xs text-muted-foreground">Selecione em que despesas este cartão pode ser utilizado</p>
+              <div className="max-h-48 overflow-y-auto border rounded-md p-3 space-y-2">
+                {expenseSubcategories.map((s: any) => (
+                  <div key={s.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`exp-${s.id}`}
+                      checked={formExpenseSubcatIds.includes(s.id)}
+                      onCheckedChange={() => toggleExpenseSubcat(s.id)}
+                    />
+                    <label htmlFor={`exp-${s.id}`} className="text-sm cursor-pointer">
+                      {s.categoryName} › {s.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Subcategoria de Rendimento</Label>
@@ -321,4 +415,4 @@ const CartoesCombustivelPage: React.FC = () => {
   );
 };
 
-export default CartoesCombustivelPage;
+export default CartoesPage;

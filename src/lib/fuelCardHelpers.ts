@@ -4,6 +4,7 @@ export interface FuelCard {
   id: string;
   user_id: string;
   card_name: string;
+  card_type: string;
   monthly_limit: number;
   income_subcategory_id: string | null;
   effective_from: string;
@@ -12,6 +13,7 @@ export interface FuelCard {
   created_at: string | null;
   updated_at: string | null;
   subcategories?: { id: string; name: string; category_id: string } | null;
+  expense_subcategory_ids?: string[];
 }
 
 export async function fetchFuelCards(userId: string): Promise<FuelCard[]> {
@@ -21,26 +23,52 @@ export async function fetchFuelCards(userId: string): Promise<FuelCard[]> {
     .eq('user_id', userId)
     .order('card_name');
   if (error) throw error;
-  return (data || []) as FuelCard[];
+
+  // Fetch expense subcategory mappings
+  const { data: mappings } = await supabase
+    .from('card_expense_subcategories')
+    .select('card_id, subcategory_id')
+    .eq('user_id', userId);
+
+  const mappingsByCard: Record<string, string[]> = {};
+  for (const m of mappings || []) {
+    if (!mappingsByCard[m.card_id]) mappingsByCard[m.card_id] = [];
+    mappingsByCard[m.card_id].push(m.subcategory_id);
+  }
+
+  return (data || []).map(card => ({
+    ...card,
+    expense_subcategory_ids: mappingsByCard[card.id] || [],
+  })) as FuelCard[];
 }
 
 /**
- * Recalculates fuel card income transactions for a given month/year.
- * - Sums all fuel expenses linked to each card in that month
- * - Creates/updates a single auto-generated income transaction per card per month
- * - Caps income at the card's monthly_limit
+ * Get cards that are linked to a specific expense subcategory
+ */
+export function getCardsForSubcategory(cards: FuelCard[], subcategoryId: string): FuelCard[] {
+  return cards.filter(c => c.is_active && (c.expense_subcategory_ids || []).includes(subcategoryId));
+}
+
+/**
+ * Check if a subcategory has any cards linked to it
+ */
+export function hasCardsForSubcategory(cards: FuelCard[], subcategoryId: string): boolean {
+  return cards.some(c => c.is_active && (c.expense_subcategory_ids || []).includes(subcategoryId));
+}
+
+/**
+ * Recalculates card income transactions for a given month/year.
  */
 export async function recalculateFuelCardIncome(
   userId: string,
   year: number,
-  month: number, // 1-based
+  month: number,
   fuelCardId?: string
 ) {
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const endDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
 
-  // Get relevant fuel cards
   let cardsQuery = supabase
     .from('fuel_cards')
     .select('*, subcategories(id, name, category_id)')
@@ -58,14 +86,11 @@ export async function recalculateFuelCardIncome(
   for (const card of cards) {
     if (!card.income_subcategory_id || !card.subcategories?.category_id) continue;
 
-    // Check card is effective for this month
     if (card.effective_from > endDate) continue;
     if (card.effective_to && card.effective_to < startDate) continue;
 
-    // Clamp start date to card's effective_from
     const effectiveStart = card.effective_from > startDate ? card.effective_from : startDate;
 
-    // Sum fuel expenses for this card in this month
     const { data: expenses, error: expError } = await supabase
       .from('transactions')
       .select('amount, date')
@@ -80,10 +105,8 @@ export async function recalculateFuelCardIncome(
 
     const totalExpense = (expenses || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
     const recognizedIncome = Math.min(totalExpense, Number(card.monthly_limit));
-    // Use the date of the most recent expense for the income transaction
     const latestExpenseDate = expenses && expenses.length > 0 ? expenses[0].date : endDate;
 
-    // Find existing auto-generated income transaction for this card/month
     const { data: existingIncome, error: existError } = await supabase
       .from('transactions')
       .select('id')
@@ -98,7 +121,6 @@ export async function recalculateFuelCardIncome(
     if (existError) throw existError;
 
     if (recognizedIncome <= 0) {
-      // Delete existing income tx if no eligible expenses
       if (existingIncome && existingIncome.length > 0) {
         await supabase.from('transactions').delete().eq('id', existingIncome[0].id);
       }
@@ -114,7 +136,7 @@ export async function recalculateFuelCardIncome(
       subcategory_id: card.income_subcategory_id,
       fuel_card_id: card.id,
       auto_generated: true,
-      notes: `Cartão ${card.card_name} — rendimento automático`,
+      notes: `${card.card_name} — rendimento automático`,
     };
 
     if (existingIncome && existingIncome.length > 0) {
@@ -131,7 +153,7 @@ export async function recalculateFuelCardIncome(
 }
 
 /**
- * Get monthly fuel card usage summary for dashboard display
+ * Get monthly card usage summary for dashboard display
  */
 export async function getFuelCardMonthlySummary(
   userId: string,
@@ -152,14 +174,11 @@ export async function getFuelCardMonthlySummary(
   const summaries = [];
 
   for (const card of cards || []) {
-    // Skip cards not effective for this month
     if (card.effective_from > endDate) continue;
     if (card.effective_to && card.effective_to < startDate) continue;
 
-    // Clamp start date to card's effective_from
     const effectiveStart = card.effective_from > startDate ? card.effective_from : startDate;
 
-    // Sum expenses from effective start
     const { data: expenses } = await supabase
       .from('transactions')
       .select('amount')
