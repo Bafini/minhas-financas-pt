@@ -497,6 +497,57 @@ export type Database = {
           },
         ]
       }
+      telegram_bot_state: {
+        Row: {
+          id: number
+          update_offset: number
+          updated_at: string
+        }
+        Insert: {
+          id: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telegram_user_links: {
+        Row: {
+          active_card_id: string | null
+          chat_id: number | null
+          created_at: string | null
+          id: string
+          link_code: string | null
+          link_code_expires: string | null
+          mode: string | null
+          user_id: string
+        }
+        Insert: {
+          active_card_id?: string | null
+          chat_id?: number | null
+          created_at?: string | null
+          id?: string
+          link_code?: string | null
+          link_code_expires?: string | null
+          mode?: string | null
+          user_id: string
+        }
+        Update: {
+          active_card_id?: string | null
+          chat_id?: number | null
+          created_at?: string | null
+          id?: string
+          link_code?: string | null
+          link_code_expires?: string | null
+          mode?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
