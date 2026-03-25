@@ -310,6 +310,7 @@ const CartoesPage: React.FC = () => {
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
                         <span className="font-medium">{card.card_name}</span>
                         <Badge variant="outline" className="text-xs">{cardTypeLabel(card.card_type)}</Badge>
+                        <Badge variant="outline" className="text-xs">{card.limit_type === 'one_time' ? 'Único' : 'Mensal'}</Badge>
                         {!card.is_active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
