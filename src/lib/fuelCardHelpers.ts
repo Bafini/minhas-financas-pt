@@ -38,9 +38,29 @@ export async function fetchFuelCards(userId: string): Promise<FuelCard[]> {
     mappingsByCard[m.card_id].push(m.subcategory_id);
   }
 
+  // For one_time cards, fetch total spent all time to check exhaustion
+  const oneTimeCardIds = (data || []).filter(c => c.limit_type === 'one_time').map(c => c.id);
+  const spentByCard: Record<string, number> = {};
+
+  if (oneTimeCardIds.length > 0) {
+    const { data: expenses } = await supabase
+      .from('transactions')
+      .select('fuel_card_id, amount')
+      .eq('user_id', userId)
+      .eq('macro_group', 'Despesas')
+      .in('fuel_card_id', oneTimeCardIds);
+
+    for (const tx of expenses || []) {
+      if (tx.fuel_card_id) {
+        spentByCard[tx.fuel_card_id] = (spentByCard[tx.fuel_card_id] || 0) + Number(tx.amount);
+      }
+    }
+  }
+
   return (data || []).map(card => ({
     ...card,
     expense_subcategory_ids: mappingsByCard[card.id] || [],
+    _totalSpentAllTime: card.limit_type === 'one_time' ? (spentByCard[card.id] || 0) : undefined,
   })) as FuelCard[];
 }
 
