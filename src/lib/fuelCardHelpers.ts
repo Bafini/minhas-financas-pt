@@ -83,7 +83,7 @@ export function getCardsForSubcategory(cards: FuelCard[], subcategoryId: string)
  * Check if a subcategory has any cards linked to it
  */
 export function hasCardsForSubcategory(cards: FuelCard[], subcategoryId: string): boolean {
-  return cards.some(c => c.is_active && (c.expense_subcategory_ids || []).includes(subcategoryId));
+  return getCardsForSubcategory(cards, subcategoryId).length > 0;
 }
 
 /**
