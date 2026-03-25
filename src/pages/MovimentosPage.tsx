@@ -230,11 +230,13 @@ const MovimentosPage: React.FC = () => {
   const inlineCatOptions = categories.filter(c => c.group_type === inlineMacroGroup);
   const inlineSelectedCat = categories.find(c => c.id === inlineCategory);
   const inlineSubcats = inlineSelectedCat?.subcategories || [];
-  const showInlineFuelCard = isFuelSubcategory(inlineSubcategory, inlineMacroGroup);
+  const showInlineCard = hasCards(inlineSubcategory, inlineMacroGroup);
+  const inlineAvailableCards = getAvailableCards(inlineSubcategory);
 
   const selectedCat = categories.find(c => c.id === formCategory);
   const subcats = selectedCat?.subcategories || [];
-  const showFormFuelCard = isFuelSubcategory(formSubcategory, formMacroGroup);
+  const showFormCard = hasCards(formSubcategory, formMacroGroup);
+  const formAvailableCards = getAvailableCards(formSubcategory);
 
   const totalPages = Math.ceil(count / pageSize);
 
