@@ -67,8 +67,9 @@ const MovimentosPage: React.FC = () => {
   const [inlineNotes, setInlineNotes] = useState('');
   const [inlineFuelCardId, setInlineFuelCardId] = useState('');
 
-  // Fuel cards
+  // Cards
   const [fuelCards, setFuelCards] = useState<FuelCard[]>([]);
+  const [movementsUpdatedUntil, setMovementsUpdatedUntil] = useState('');
 
   const pageSize = 50;
 
