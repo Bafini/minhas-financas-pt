@@ -21,6 +21,7 @@ import {
 import { Settings, User, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import PartnershipSection from '@/components/settings/PartnershipSection';
+import TelegramSection from '@/components/settings/TelegramSection';
 
 const DATE_FORMATS = [
   { value: 'DD/MM/YYYY', label: 'DD/MM/AAAA (31/12/2025)' },
@@ -120,6 +121,7 @@ const DefinicoesPage: React.FC = () => {
       </Card>
 
       {!isDemo && <PartnershipSection />}
+      {!isDemo && user && <TelegramSection userId={user.id} />}
 
       <Card className="glass-surface">
         <CardHeader>
