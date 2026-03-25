@@ -353,16 +353,30 @@ const CartoesPage: React.FC = () => {
               <Label>Nome do Cartão</Label>
               <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Ex: Cartão X" />
             </div>
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={formType} onValueChange={setFormType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CARD_TYPES.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <Select value={formType} onValueChange={setFormType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CARD_TYPES.map(t => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo de Plafond</Label>
+                <Select value={formLimitType} onValueChange={(v: 'monthly' | 'one_time') => setFormLimitType(v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {LIMIT_TYPES.map(t => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             </div>
             <div className="space-y-2">
               <Label>Plafond Mensal (€)</Label>
