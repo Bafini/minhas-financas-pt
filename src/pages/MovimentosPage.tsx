@@ -77,7 +77,7 @@ const MovimentosPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [txResult, cats, fc] = await Promise.all([
+      const [txResult, cats, fc, profileRes] = await Promise.all([
         fetchTransactions(activeUserId, {
           search: search || undefined,
           macroGroup: (macroGroup as MacroGroup) || undefined,
@@ -89,11 +89,15 @@ const MovimentosPage: React.FC = () => {
         }),
         fetchCategories(activeUserId),
         fetchFuelCards(activeUserId),
+        supabase.from('profiles').select('movements_updated_until').eq('user_id', activeUserId).single(),
       ]);
       setTransactions(txResult.data);
       setCount(txResult.count);
       setCategories(cats || []);
       setFuelCards(fc);
+      if (profileRes.data?.movements_updated_until) {
+        setMovementsUpdatedUntil(profileRes.data.movements_updated_until);
+      }
     } catch (err) {
       console.error(err);
     } finally {
