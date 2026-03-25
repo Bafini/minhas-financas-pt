@@ -269,9 +269,13 @@ const CartoesPage: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-muted-foreground text-xs">Disponível</p>
-                          <p className={cn("financial-value font-medium", s.remaining > 0 ? "text-income" : "text-muted-foreground")}>
-                            {formatCurrency(s.remaining)}
-                          </p>
+                          {s.isExhausted ? (
+                            <Badge variant="destructive" className="text-xs mt-1">Esgotado</Badge>
+                          ) : (
+                            <p className={cn("financial-value font-medium", s.remaining > 0 ? "text-income" : "text-muted-foreground")}>
+                              {formatCurrency(s.remaining)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </CardContent>
