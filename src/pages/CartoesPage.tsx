@@ -247,6 +247,7 @@ const CartoesPage: React.FC = () => {
                         </div>
                         <div className="flex gap-1">
                           <Badge variant="outline" className="text-xs">{cardTypeLabel(s.card.card_type)}</Badge>
+                          <Badge variant="outline" className="text-xs">{s.card.limit_type === 'one_time' ? 'Único' : 'Mensal'}</Badge>
                           {!s.card.is_active && (
                             <Badge variant="secondary" className="text-xs">Inativo</Badge>
                           )}
