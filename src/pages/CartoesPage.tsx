@@ -108,6 +108,7 @@ const CartoesPage: React.FC = () => {
     setEditCard(card);
     setFormName(card.card_name);
     setFormType(card.card_type || 'combustivel');
+    setFormLimitType(card.limit_type || 'monthly');
     setFormLimit(String(card.monthly_limit));
     setFormSubcategoryId(card.income_subcategory_id || '');
     setFormFrom(card.effective_from);
