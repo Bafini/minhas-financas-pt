@@ -121,6 +121,7 @@ const DefinicoesPage: React.FC = () => {
       </Card>
 
       {!isDemo && <PartnershipSection />}
+      {!isDemo && user && <TelegramSection userId={user.id} />}
 
       <Card className="glass-surface">
         <CardHeader>
