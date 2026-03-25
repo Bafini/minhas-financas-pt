@@ -462,14 +462,14 @@ const MovimentosPage: React.FC = () => {
                 </Select>
               </div>
             )}
-            {showFormFuelCard && (
+            {showFormCard && (
               <div className="space-y-2">
-                <Label>Cartão de Combustível</Label>
+                <Label>Cartão</Label>
                 <Select value={formFuelCardId || 'none'} onValueChange={v => setFormFuelCardId(v === 'none' ? '' : v)}>
                   <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
-                    {activeFuelCards.map(fc => (
+                    {formAvailableCards.map(fc => (
                       <SelectItem key={fc.id} value={fc.id}>{fc.card_name}</SelectItem>
                     ))}
                   </SelectContent>
