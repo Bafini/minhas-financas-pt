@@ -209,7 +209,10 @@ export async function getFuelCardMonthlySummary(
 
     const effectiveStart = card.effective_from > startDate ? card.effective_from : startDate;
 
-    const { data: expenses } = await supabase
+    // For one_time cards, get total spent since effective_from (all time)
+    const isOneTime = card.limit_type === 'one_time';
+
+    const { data: monthExpenses } = await supabase
       .from('transactions')
       .select('amount')
       .eq('user_id', userId)
@@ -218,16 +221,36 @@ export async function getFuelCardMonthlySummary(
       .gte('date', effectiveStart)
       .lte('date', endDate);
 
-    const totalSpent = (expenses || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
-    const recognized = Math.min(totalSpent, Number(card.monthly_limit));
-    const remaining = Math.max(0, Number(card.monthly_limit) - totalSpent);
+    const totalSpentMonth = (monthExpenses || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
+
+    let totalSpentAllTime = totalSpentMonth;
+    if (isOneTime) {
+      const { data: allExpenses } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('user_id', userId)
+        .eq('fuel_card_id', card.id)
+        .eq('macro_group', 'Despesas')
+        .gte('date', card.effective_from);
+      totalSpentAllTime = (allExpenses || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
+    }
+
+    const limit = Number(card.monthly_limit);
+    const recognized = isOneTime
+      ? Math.min(totalSpentAllTime, limit)
+      : Math.min(totalSpentMonth, limit);
+    const remaining = isOneTime
+      ? Math.max(0, limit - totalSpentAllTime)
+      : Math.max(0, limit - totalSpentMonth);
 
     summaries.push({
       card,
-      totalSpent,
+      totalSpent: isOneTime ? totalSpentAllTime : totalSpentMonth,
+      totalSpentMonth,
       recognized,
       remaining,
-      monthlyLimit: Number(card.monthly_limit),
+      monthlyLimit: limit,
+      isExhausted: isOneTime && totalSpentAllTime >= limit,
     });
   }
 
