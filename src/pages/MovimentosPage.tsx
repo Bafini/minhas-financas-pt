@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { fetchTransactions, fetchCategories, TransactionRow } from '@/lib/queries';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { fetchFuelCards, recalculateFuelCardIncome, FuelCard } from '@/lib/fuelCardHelpers';
+import { fetchFuelCards, recalculateFuelCardIncome, FuelCard, getCardsForSubcategory, hasCardsForSubcategory } from '@/lib/fuelCardHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
