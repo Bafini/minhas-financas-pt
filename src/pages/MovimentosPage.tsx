@@ -320,6 +320,7 @@ const MovimentosPage: React.FC = () => {
               <TableHead>Subcategoria</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Evento</TableHead>
+              <TableHead>Notas</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
