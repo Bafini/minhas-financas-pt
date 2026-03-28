@@ -510,8 +510,14 @@ const MovimentosPage: React.FC = () => {
               <Input type="number" step="0.01" value={formAmount} onChange={e => setFormAmount(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Notas</Label>
-              <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} rows={3} />
+              <Label>Evento</Label>
+              <Select value={formEventLabel || 'none'} onValueChange={v => setFormEventLabel(v === 'none' ? '' : v)}>
+                <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {eventLabels.map(el => <SelectItem key={el.id} value={el.name}>{el.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-2 pt-4">
               <Button onClick={handleSave} className="flex-1">Guardar</Button>
