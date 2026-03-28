@@ -142,7 +142,7 @@ const MovimentosPage: React.FC = () => {
       user_id: activeUserId,
       date: formDate,
       amount: parseFloat(formAmount),
-      notes: formNotes || null,
+      event_label: formEventLabel || null,
       category_id: formCategory || null,
       subcategory_id: formSubcategory || null,
       macro_group: formMacroGroup as MacroGroup,
