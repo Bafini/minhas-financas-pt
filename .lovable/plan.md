@@ -1,51 +1,47 @@
 
 
-## Plano: Evolucao dos Eventos
+## Plano: Página de Eventos baseada na tabela `event_labels`
 
-### Resumo
-- Adicionar campo `is_active` a tabela `event_labels`
-- Permitir criar eventos manualmente (ja existe botao, mas precisa recarregar lista apos criacao)
-- No registo de movimentos, substituir o campo "Notas" (texto livre) por uma combo "Evento" que lista apenas eventos ativos
-- As transacoes passam a usar `event_label` como referencia ao nome do evento (ja e assim), mas o campo `notes` desaparece da UI de registo
-- Manter sugestoes na pagina de Eventos para criar eventos a partir de notas existentes
+### Problema atual
+A página constrói a lista de eventos a partir da coluna `event_label` das transações e depois cruza com `event_labels`. Isto significa que eventos que existem apenas como notas (sem registo em `event_labels`) aparecem como eventos, e a fonte de verdade está dispersa.
 
-### Passo 1 — Migracao de Base de Dados
+### Alterações
 
-Adicionar coluna `is_active` a tabela `event_labels`:
+**1. Migração de dados (SQL via insert tool)**
+
+Copiar `notes` → `event_label` e criar registos em `event_labels` para valores únicos:
+
 ```sql
-ALTER TABLE event_labels ADD COLUMN is_active boolean NOT NULL DEFAULT true;
+-- Copiar notes para event_label onde ainda não tem evento
+UPDATE transactions 
+SET event_label = notes 
+WHERE event_label IS NULL AND notes IS NOT NULL AND notes != '';
+
+-- Criar event_labels para valores distintos que não existam
+INSERT INTO event_labels (user_id, name, is_active)
+SELECT DISTINCT t.user_id, t.event_label, true
+FROM transactions t
+WHERE t.event_label IS NOT NULL AND t.event_label != ''
+  AND NOT EXISTS (
+    SELECT 1 FROM event_labels el 
+    WHERE el.user_id = t.user_id AND el.name = t.event_label
+  );
 ```
 
-### Passo 2 — Pagina de Eventos (`EventosPage.tsx`)
+**2. Refactoring da `EventosPage.tsx`**
 
-- Adicionar toggle ativo/inativo em cada card de evento (switch ou badge clicavel)
-- O dialog de criacao manual ja existe — garantir que apos criar, a lista recarrega (adicionar `loadAll()` apos sucesso)
-- Mostrar visualmente eventos inativos (opacidade reduzida, badge "Inativo")
-- Filtro para mostrar/esconder inativos
+- A lista principal passa a ser a tabela `event_labels` (fonte de verdade)
+- Para cada evento, agregar totais/contagem das transações com `event_label = nome`
+- Remover a lógica separada de `labelsWithoutTxs` (tudo vem da mesma lista)
+- Manter sugestões baseadas em `notes` para transações que ainda não têm `event_label`
+- Remover coluna "Notas" do detalhe do evento (já não é relevante)
 
-### Passo 3 — Movimentos (`MovimentosPage.tsx`)
+**3. Remover coluna Notas da tabela de Movimentos (`MovimentosPage.tsx`)**
 
-- Carregar eventos ativos do utilizador (`event_labels` com `is_active = true`)
-- Substituir o campo "Notas" (`Textarea`) por uma `Select` com label "Evento"
-- Opcoes: "Nenhum" + lista de eventos ativos
-- O campo nao e obrigatorio (pode ficar sem evento)
-- Aplicar tanto no formulario Sheet como na linha inline
-- No `payload` do save, guardar o nome do evento selecionado em `event_label` (como ja funciona)
-- Remover `notes`/`formNotes`/`inlineNotes` da UI (o campo `notes` na BD pode manter-se para dados historicos mas deixa de ser editavel)
-
-### Passo 4 — Tabela de listagem
-
-- Renomear coluna "Notas" para "Evento" na tabela de movimentos
-- Mostrar o `event_label` em vez de `notes`
-
-### Passo 5 — Telegram Bot
-
-- Atualizar a funcao `telegram-poll` para que quando o utilizador envia texto, o campo `notes` continue a ser preenchido (o bot pode manter notas como texto livre, sendo um canal diferente)
+- Remover a coluna "Notas" da listagem, manter apenas "Evento" que mostra `event_label`
 
 ### Ficheiros a editar
-
-1. **Migracao SQL** — adicionar `is_active` a `event_labels`
-2. **`src/pages/EventosPage.tsx`** — toggle ativo/inativo, melhorar criacao manual
-3. **`src/pages/MovimentosPage.tsx`** — substituir campo Notas por combo Evento
-4. **`src/lib/queries.ts`** — adicionar funcao `fetchEventLabels` se necessario (ja existe)
+1. **SQL via insert tool** — migração de dados
+2. **`src/pages/EventosPage.tsx`** — refactoring para usar `event_labels` como base
+3. **`src/pages/MovimentosPage.tsx`** — remover coluna Notas
 
