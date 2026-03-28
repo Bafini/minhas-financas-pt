@@ -318,7 +318,7 @@ const MovimentosPage: React.FC = () => {
               <TableHead>Categoria</TableHead>
               <TableHead>Subcategoria</TableHead>
               <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Notas</TableHead>
+              <TableHead>Evento</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
