@@ -416,7 +416,7 @@ const MovimentosPage: React.FC = () => {
                   <TableCell className="text-right financial-value font-medium text-sm">
                     {formatCurrency(Number(tx.amount))}
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{tx.notes || ''}</TableCell>
+                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{tx.event_label || ''}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); openEdit(tx); }}>
