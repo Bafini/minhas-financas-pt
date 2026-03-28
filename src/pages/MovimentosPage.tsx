@@ -127,7 +127,7 @@ const MovimentosPage: React.FC = () => {
     setNewTx(true);
     setFormDate(new Date().toISOString().split('T')[0]);
     setFormAmount('');
-    setFormNotes('');
+    setFormEventLabel('');
     setFormCategory('');
     setFormSubcategory('');
     setFormMacroGroup('Despesas');
