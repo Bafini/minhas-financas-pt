@@ -320,6 +320,7 @@ const MovimentosPage: React.FC = () => {
               <TableHead>Subcategoria</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Evento</TableHead>
+              <TableHead>Notas</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -400,9 +401,9 @@ const MovimentosPage: React.FC = () => {
               </TableRow>
             )}
             {loading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
             ) : transactions.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Sem movimentos</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sem movimentos</TableCell></TableRow>
             ) : (
               transactions.map(tx => (
                 <TableRow key={tx.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(tx)}>
@@ -417,7 +418,8 @@ const MovimentosPage: React.FC = () => {
                   <TableCell className="text-right financial-value font-medium text-sm">
                     {formatCurrency(Number(tx.amount))}
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{tx.event_label || ''}</TableCell>
+                  <TableCell className="max-w-[150px] truncate text-sm text-muted-foreground">{tx.event_label || ''}</TableCell>
+                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{tx.notes || ''}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); openEdit(tx); }}>
