@@ -400,9 +400,9 @@ const MovimentosPage: React.FC = () => {
               </TableRow>
             )}
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
             ) : transactions.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Sem movimentos</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Sem movimentos</TableCell></TableRow>
             ) : (
               transactions.map(tx => (
                 <TableRow key={tx.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(tx)}>
