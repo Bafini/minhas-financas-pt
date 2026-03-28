@@ -211,6 +211,7 @@ const MovimentosPage: React.FC = () => {
         await recalculateFuelCardIncome(activeUserId, d.getFullYear(), d.getMonth() + 1, fuelCardIdValue);
       }
       // Reset inline but keep it open for next entry
+      setInlineAmount('');
       setInlineEventLabel('');
       setInlineSubcategory('');
       setInlineFuelCardId('');
