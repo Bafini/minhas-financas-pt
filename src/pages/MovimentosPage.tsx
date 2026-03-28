@@ -378,13 +378,13 @@ const MovimentosPage: React.FC = () => {
                   />
                 </TableCell>
                 <TableCell>
-                  <Input
-                    placeholder="Notas..."
-                    value={inlineNotes}
-                    onChange={e => setInlineNotes(e.target.value)}
-                    className="h-8 text-sm"
-                    onKeyDown={e => { if (e.key === 'Enter') handleInlineSave(); }}
-                  />
+                  <Select value={inlineEventLabel || 'none'} onValueChange={v => setInlineEventLabel(v === 'none' ? '' : v)}>
+                    <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue placeholder="Evento" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {eventLabels.map(el => <SelectItem key={el.id} value={el.name}>{el.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
