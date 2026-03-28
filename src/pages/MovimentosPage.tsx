@@ -31,6 +31,7 @@ const MovimentosPage: React.FC = () => {
   const { activeUserId, canWrite } = useActiveProfile();
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [eventLabels, setEventLabels] = useState<any[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
