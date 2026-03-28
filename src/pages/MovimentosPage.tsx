@@ -196,7 +196,7 @@ const MovimentosPage: React.FC = () => {
       user_id: activeUserId,
       date: inlineDate,
       amount: parseFloat(inlineAmount),
-      notes: inlineNotes || null,
+      event_label: inlineEventLabel || null,
       category_id: inlineCategory || null,
       subcategory_id: inlineSubcategory || null,
       macro_group: inlineMacroGroup,
