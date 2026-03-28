@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveProfile } from '@/contexts/ActiveProfileContext';
-import { fetchTransactions, fetchCategories, TransactionRow } from '@/lib/queries';
+import { fetchTransactions, fetchCategories, fetchEventLabels, TransactionRow } from '@/lib/queries';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { fetchFuelCards, recalculateFuelCardIncome, FuelCard, getCardsForSubcategory, hasCardsForSubcategory } from '@/lib/fuelCardHelpers';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +13,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Check, X, CalendarClock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -32,6 +31,7 @@ const MovimentosPage: React.FC = () => {
   const { activeUserId, canWrite } = useActiveProfile();
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [eventLabels, setEventLabels] = useState<any[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -51,7 +51,7 @@ const MovimentosPage: React.FC = () => {
   // Form state
   const [formDate, setFormDate] = useState('');
   const [formAmount, setFormAmount] = useState('');
-  const [formNotes, setFormNotes] = useState('');
+  const [formEventLabel, setFormEventLabel] = useState('');
   const [formCategory, setFormCategory] = useState('');
   const [formSubcategory, setFormSubcategory] = useState('');
   const [formMacroGroup, setFormMacroGroup] = useState<MacroGroup>('Despesas');
@@ -64,7 +64,7 @@ const MovimentosPage: React.FC = () => {
   const [inlineCategory, setInlineCategory] = useState('');
   const [inlineSubcategory, setInlineSubcategory] = useState('');
   const [inlineAmount, setInlineAmount] = useState('');
-  const [inlineNotes, setInlineNotes] = useState('');
+  const [inlineEventLabel, setInlineEventLabel] = useState('');
   const [inlineFuelCardId, setInlineFuelCardId] = useState('');
 
   // Cards
@@ -77,7 +77,7 @@ const MovimentosPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [txResult, cats, fc, profileRes] = await Promise.all([
+      const [txResult, cats, fc, profileRes, evLabels] = await Promise.all([
         fetchTransactions(activeUserId, {
           search: search || undefined,
           macroGroup: (macroGroup as MacroGroup) || undefined,
@@ -90,11 +90,13 @@ const MovimentosPage: React.FC = () => {
         fetchCategories(activeUserId),
         fetchFuelCards(activeUserId),
         supabase.from('profiles').select('movements_updated_until').eq('user_id', activeUserId).single(),
+        fetchEventLabels(activeUserId),
       ]);
       setTransactions(txResult.data);
       setCount(txResult.count);
       setCategories(cats || []);
       setFuelCards(fc);
+      setEventLabels((evLabels || []).filter((e: any) => e.is_active));
       if (profileRes.data?.movements_updated_until) {
         setMovementsUpdatedUntil(profileRes.data.movements_updated_until);
       }
@@ -112,7 +114,7 @@ const MovimentosPage: React.FC = () => {
     setNewTx(false);
     setFormDate(tx.date);
     setFormAmount(String(tx.amount));
-    setFormNotes(tx.notes || '');
+    setFormEventLabel(tx.event_label || '');
     setFormCategory(tx.category_id || '');
     setFormSubcategory(tx.subcategory_id || '');
     setFormMacroGroup(tx.macro_group);
@@ -125,7 +127,7 @@ const MovimentosPage: React.FC = () => {
     setNewTx(true);
     setFormDate(new Date().toISOString().split('T')[0]);
     setFormAmount('');
-    setFormNotes('');
+    setFormEventLabel('');
     setFormCategory('');
     setFormSubcategory('');
     setFormMacroGroup('Despesas');
@@ -140,7 +142,7 @@ const MovimentosPage: React.FC = () => {
       user_id: activeUserId,
       date: formDate,
       amount: parseFloat(formAmount),
-      notes: formNotes || null,
+      event_label: formEventLabel || null,
       category_id: formCategory || null,
       subcategory_id: formSubcategory || null,
       macro_group: formMacroGroup as MacroGroup,
@@ -194,7 +196,7 @@ const MovimentosPage: React.FC = () => {
       user_id: activeUserId,
       date: inlineDate,
       amount: parseFloat(inlineAmount),
-      notes: inlineNotes || null,
+      event_label: inlineEventLabel || null,
       category_id: inlineCategory || null,
       subcategory_id: inlineSubcategory || null,
       macro_group: inlineMacroGroup,
@@ -210,7 +212,7 @@ const MovimentosPage: React.FC = () => {
       }
       // Reset inline but keep it open for next entry
       setInlineAmount('');
-      setInlineNotes('');
+      setInlineEventLabel('');
       setInlineSubcategory('');
       setInlineFuelCardId('');
       loadData();
@@ -281,7 +283,7 @@ const MovimentosPage: React.FC = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Pesquisar notas..."
+                placeholder="Pesquisar eventos..."
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(0); }}
                 className="pl-9"
@@ -317,7 +319,7 @@ const MovimentosPage: React.FC = () => {
               <TableHead>Categoria</TableHead>
               <TableHead>Subcategoria</TableHead>
               <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Notas</TableHead>
+              <TableHead>Evento</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -377,13 +379,13 @@ const MovimentosPage: React.FC = () => {
                   />
                 </TableCell>
                 <TableCell>
-                  <Input
-                    placeholder="Notas..."
-                    value={inlineNotes}
-                    onChange={e => setInlineNotes(e.target.value)}
-                    className="h-8 text-sm"
-                    onKeyDown={e => { if (e.key === 'Enter') handleInlineSave(); }}
-                  />
+                  <Select value={inlineEventLabel || 'none'} onValueChange={v => setInlineEventLabel(v === 'none' ? '' : v)}>
+                    <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue placeholder="Evento" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {eventLabels.map(el => <SelectItem key={el.id} value={el.name}>{el.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
@@ -415,7 +417,7 @@ const MovimentosPage: React.FC = () => {
                   <TableCell className="text-right financial-value font-medium text-sm">
                     {formatCurrency(Number(tx.amount))}
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{tx.notes || ''}</TableCell>
+                  <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{tx.event_label || ''}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); openEdit(tx); }}>
@@ -509,8 +511,14 @@ const MovimentosPage: React.FC = () => {
               <Input type="number" step="0.01" value={formAmount} onChange={e => setFormAmount(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Notas</Label>
-              <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} rows={3} />
+              <Label>Evento</Label>
+              <Select value={formEventLabel || 'none'} onValueChange={v => setFormEventLabel(v === 'none' ? '' : v)}>
+                <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {eventLabels.map(el => <SelectItem key={el.id} value={el.name}>{el.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-2 pt-4">
               <Button onClick={handleSave} className="flex-1">Guardar</Button>
