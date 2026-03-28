@@ -51,7 +51,7 @@ const MovimentosPage: React.FC = () => {
   // Form state
   const [formDate, setFormDate] = useState('');
   const [formAmount, setFormAmount] = useState('');
-  const [formNotes, setFormNotes] = useState('');
+  const [formEventLabel, setFormEventLabel] = useState('');
   const [formCategory, setFormCategory] = useState('');
   const [formSubcategory, setFormSubcategory] = useState('');
   const [formMacroGroup, setFormMacroGroup] = useState<MacroGroup>('Despesas');
