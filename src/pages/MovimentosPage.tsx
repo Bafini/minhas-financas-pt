@@ -64,7 +64,7 @@ const MovimentosPage: React.FC = () => {
   const [inlineCategory, setInlineCategory] = useState('');
   const [inlineSubcategory, setInlineSubcategory] = useState('');
   const [inlineAmount, setInlineAmount] = useState('');
-  const [inlineNotes, setInlineNotes] = useState('');
+  const [inlineEventLabel, setInlineEventLabel] = useState('');
   const [inlineFuelCardId, setInlineFuelCardId] = useState('');
 
   // Cards
