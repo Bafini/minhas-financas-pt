@@ -1,16 +1,15 @@
 
 
-## Plano: Botões +/- na data do BulkAddDialog
+## Plano: Corrigir botão › invisível no BulkAddDialog
 
-Adicionar botões de incremento/decremento de dia ao lado do campo de data em cada linha do formulário multi-linha.
+### Problema
+A coluna de data tem `160px` de largura, mas o input `type="date"` nativo ocupa demasiado espaço horizontal, empurrando o botão `›` (ChevronRight) para fora da área visível.
 
-### Alterações em `src/components/movimentos/BulkAddDialog.tsx`
+### Solução em `src/components/movimentos/BulkAddDialog.tsx`
 
-- Criar uma função helper `adjustDate(dateStr, days)` que soma/subtrai dias a uma data ISO
-- Envolver o `<Input type="date">` com um grupo inline contendo:
-  - Botão `-` (ChevronLeft ou Minus) à esquerda — recua 1 dia
-  - Campo de data ao centro
-  - Botão `+` (ChevronRight ou Plus) à direita — avança 1 dia
-- Ajustar a largura da coluna de data de `100px` para ~`160px` no grid para acomodar os botões
-- Importar ícones `ChevronLeft`/`ChevronRight` (já usados no projeto)
+1. Aumentar a largura da coluna de data de `160px` para `190px` no grid (tanto no header como nas linhas)
+2. Adicionar `min-w-0` ao `<Input type="date">` para que o flexbox possa encolhê-lo
+3. Garantir `overflow-hidden` no container flex da data
+
+Alterações na grid: `grid-cols-[190px_110px_1fr_1fr_100px_130px_32px]` (2 locais: header e linhas).
 
