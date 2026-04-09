@@ -14,7 +14,9 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Check, X, CalendarClock } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Check, X, CalendarClock, Copy, ListPlus } from 'lucide-react';
+import DuplicateDialog from '@/components/movimentos/DuplicateDialog';
+import BulkAddDialog from '@/components/movimentos/BulkAddDialog';
 import { cn } from '@/lib/utils';
 import { MacroGroup } from '@/lib/calculations';
 
