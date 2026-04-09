@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MacroGroup } from '@/lib/calculations';
 
 const MACRO_GROUPS: MacroGroup[] = ['Rendimentos', 'Despesas', 'Investimentos'];
@@ -41,6 +41,12 @@ const emptyLine = (): BulkLine => ({
   amount: '',
   eventLabel: '',
 });
+
+const adjustDate = (dateStr: string, days: number): string => {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+};
 
 const BulkAddDialog: React.FC<BulkAddDialogProps> = ({ open, onOpenChange, categories, eventLabels, onSubmit }) => {
   const [lines, setLines] = useState<BulkLine[]>([]);
@@ -167,7 +173,7 @@ const BulkAddDialog: React.FC<BulkAddDialogProps> = ({ open, onOpenChange, categ
 
         {/* Lines */}
         <div className="space-y-2">
-          <div className="grid grid-cols-[100px_110px_1fr_1fr_100px_130px_32px] gap-1.5 text-xs font-medium text-muted-foreground px-1">
+          <div className="grid grid-cols-[160px_110px_1fr_1fr_100px_130px_32px] gap-1.5 text-xs font-medium text-muted-foreground px-1">
             <span>Data</span>
             <span>Grupo</span>
             <span>Categoria</span>
@@ -180,8 +186,16 @@ const BulkAddDialog: React.FC<BulkAddDialogProps> = ({ open, onOpenChange, categ
             const catOptions = getCatsForGroup(line.macroGroup);
             const subcatOptions = getSubcats(line.categoryId);
             return (
-              <div key={idx} className="grid grid-cols-[100px_110px_1fr_1fr_100px_130px_32px] gap-1.5 items-center">
-                <Input type="date" value={line.date} onChange={e => updateLine(idx, { date: e.target.value })} className="h-8 text-xs" />
+              <div key={idx} className="grid grid-cols-[160px_110px_1fr_1fr_100px_130px_32px] gap-1.5 items-center">
+                <div className="flex items-center gap-0.5">
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => updateLine(idx, { date: adjustDate(line.date, -1) })}>
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <Input type="date" value={line.date} onChange={e => updateLine(idx, { date: e.target.value })} className="h-8 text-xs px-1" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => updateLine(idx, { date: adjustDate(line.date, 1) })}>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
                 <Select value={line.macroGroup} onValueChange={v => updateLine(idx, { macroGroup: v as MacroGroup })}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
