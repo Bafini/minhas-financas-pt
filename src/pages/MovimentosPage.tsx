@@ -581,6 +581,21 @@ const MovimentosPage: React.FC = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      <DuplicateDialog
+        open={duplicateOpen}
+        onOpenChange={setDuplicateOpen}
+        transaction={duplicateTx}
+        onSubmit={handleDuplicateSubmit}
+      />
+
+      <BulkAddDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        categories={categories}
+        eventLabels={eventLabels}
+        onSubmit={handleBulkSubmit}
+      />
     </div>
   );
 };
