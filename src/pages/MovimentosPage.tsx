@@ -236,6 +236,46 @@ const MovimentosPage: React.FC = () => {
 
   const getAvailableCards = (subcatId: string) => getCardsForSubcategory(fuelCards, subcatId);
 
+  const openDuplicate = (tx: TransactionRow) => {
+    setDuplicateTx(tx);
+    setDuplicateOpen(true);
+  };
+
+  const handleDuplicateSubmit = async (lines: { date: string; amount: number }[]) => {
+    if (!user || !duplicateTx) return;
+    const payloads = lines.map(l => ({
+      user_id: activeUserId,
+      date: l.date,
+      amount: l.amount,
+      macro_group: duplicateTx.macro_group,
+      category_id: duplicateTx.category_id,
+      subcategory_id: duplicateTx.subcategory_id,
+      event_label: duplicateTx.event_label,
+      fuel_card_id: duplicateTx.fuel_card_id,
+    }));
+    const { error } = await supabase.from('transactions').insert(payloads);
+    if (error) { toast.error(error.message); throw error; }
+    toast.success(`${lines.length} movimento(s) criado(s)`);
+    // Recalculate fuel cards if needed
+    if (duplicateTx.fuel_card_id) {
+      const months = new Set(lines.map(l => `${new Date(l.date).getFullYear()}-${new Date(l.date).getMonth() + 1}`));
+      for (const m of months) {
+        const [y, mo] = m.split('-').map(Number);
+        await recalculateFuelCardIncome(activeUserId, y, mo, duplicateTx.fuel_card_id);
+      }
+    }
+    loadData();
+  };
+
+  const handleBulkSubmit = async (lines: { date: string; macro_group: MacroGroup; category_id: string | null; subcategory_id: string | null; amount: number; event_label: string | null }[]) => {
+    if (!user) return;
+    const payloads = lines.map(l => ({ ...l, user_id: activeUserId }));
+    const { error } = await supabase.from('transactions').insert(payloads);
+    if (error) { toast.error(error.message); throw error; }
+    toast.success(`${lines.length} movimento(s) criado(s)`);
+    loadData();
+  };
+
   const inlineCatOptions = categories.filter(c => c.group_type === inlineMacroGroup);
   const inlineSelectedCat = categories.find(c => c.id === inlineCategory);
   const inlineSubcats = inlineSelectedCat?.subcategories || [];
