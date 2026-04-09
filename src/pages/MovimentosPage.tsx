@@ -471,6 +471,9 @@ const MovimentosPage: React.FC = () => {
                   <TableCell className="max-w-[150px] truncate text-sm text-muted-foreground">{tx.event_label || ''}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); openDuplicate(tx); }} title="Duplicar">
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); openEdit(tx); }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
