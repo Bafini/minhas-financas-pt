@@ -42,6 +42,12 @@ const emptyLine = (): BulkLine => ({
   eventLabel: '',
 });
 
+const adjustDate = (dateStr: string, days: number): string => {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+};
+
 const BulkAddDialog: React.FC<BulkAddDialogProps> = ({ open, onOpenChange, categories, eventLabels, onSubmit }) => {
   const [lines, setLines] = useState<BulkLine[]>([]);
   const [saving, setSaving] = useState(false);
