@@ -14,7 +14,9 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Check, X, CalendarClock } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Check, X, CalendarClock, Copy, ListPlus } from 'lucide-react';
+import DuplicateDialog from '@/components/movimentos/DuplicateDialog';
+import BulkAddDialog from '@/components/movimentos/BulkAddDialog';
 import { cn } from '@/lib/utils';
 import { MacroGroup } from '@/lib/calculations';
 
@@ -70,6 +72,11 @@ const MovimentosPage: React.FC = () => {
   // Cards
   const [fuelCards, setFuelCards] = useState<FuelCard[]>([]);
   const [movementsUpdatedUntil, setMovementsUpdatedUntil] = useState('');
+
+  // Duplicate & Bulk dialogs
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicateTx, setDuplicateTx] = useState<TransactionRow | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const pageSize = 50;
 
@@ -229,6 +236,46 @@ const MovimentosPage: React.FC = () => {
 
   const getAvailableCards = (subcatId: string) => getCardsForSubcategory(fuelCards, subcatId);
 
+  const openDuplicate = (tx: TransactionRow) => {
+    setDuplicateTx(tx);
+    setDuplicateOpen(true);
+  };
+
+  const handleDuplicateSubmit = async (lines: { date: string; amount: number }[]) => {
+    if (!user || !duplicateTx) return;
+    const payloads = lines.map(l => ({
+      user_id: activeUserId,
+      date: l.date,
+      amount: l.amount,
+      macro_group: duplicateTx.macro_group,
+      category_id: duplicateTx.category_id,
+      subcategory_id: duplicateTx.subcategory_id,
+      event_label: duplicateTx.event_label,
+      fuel_card_id: duplicateTx.fuel_card_id,
+    }));
+    const { error } = await supabase.from('transactions').insert(payloads);
+    if (error) { toast.error(error.message); throw error; }
+    toast.success(`${lines.length} movimento(s) criado(s)`);
+    // Recalculate fuel cards if needed
+    if (duplicateTx.fuel_card_id) {
+      const months = new Set(lines.map(l => `${new Date(l.date).getFullYear()}-${new Date(l.date).getMonth() + 1}`));
+      for (const m of months) {
+        const [y, mo] = m.split('-').map(Number);
+        await recalculateFuelCardIncome(activeUserId, y, mo, duplicateTx.fuel_card_id);
+      }
+    }
+    loadData();
+  };
+
+  const handleBulkSubmit = async (lines: { date: string; macro_group: MacroGroup; category_id: string | null; subcategory_id: string | null; amount: number; event_label: string | null }[]) => {
+    if (!user) return;
+    const payloads = lines.map(l => ({ ...l, user_id: activeUserId }));
+    const { error } = await supabase.from('transactions').insert(payloads);
+    if (error) { toast.error(error.message); throw error; }
+    toast.success(`${lines.length} movimento(s) criado(s)`);
+    loadData();
+  };
+
   const inlineCatOptions = categories.filter(c => c.group_type === inlineMacroGroup);
   const inlineSelectedCat = categories.find(c => c.id === inlineCategory);
   const inlineSubcats = inlineSelectedCat?.subcategories || [];
@@ -265,6 +312,10 @@ const MovimentosPage: React.FC = () => {
               className="h-8 w-[150px] text-sm"
             />
           </div>
+          <Button variant="outline" onClick={() => setBulkOpen(true)}>
+            <ListPlus className="mr-2 h-4 w-4" />
+            Adicionar Vários
+          </Button>
           <Button variant="outline" onClick={() => setInlineOpen(!inlineOpen)}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar Rápido
@@ -420,6 +471,9 @@ const MovimentosPage: React.FC = () => {
                   <TableCell className="max-w-[150px] truncate text-sm text-muted-foreground">{tx.event_label || ''}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); openDuplicate(tx); }} title="Duplicar">
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); openEdit(tx); }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -527,6 +581,21 @@ const MovimentosPage: React.FC = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      <DuplicateDialog
+        open={duplicateOpen}
+        onOpenChange={setDuplicateOpen}
+        transaction={duplicateTx}
+        onSubmit={handleDuplicateSubmit}
+      />
+
+      <BulkAddDialog
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        categories={categories}
+        eventLabels={eventLabels}
+        onSubmit={handleBulkSubmit}
+      />
     </div>
   );
 };
