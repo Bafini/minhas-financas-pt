@@ -173,7 +173,7 @@ const BulkAddDialog: React.FC<BulkAddDialogProps> = ({ open, onOpenChange, categ
 
         {/* Lines */}
         <div className="space-y-2">
-          <div className="grid grid-cols-[160px_110px_1fr_1fr_100px_130px_32px] gap-1.5 text-xs font-medium text-muted-foreground px-1">
+          <div className="grid grid-cols-[190px_110px_1fr_1fr_100px_130px_32px] gap-1.5 text-xs font-medium text-muted-foreground px-1">
             <span>Data</span>
             <span>Grupo</span>
             <span>Categoria</span>
@@ -186,12 +186,12 @@ const BulkAddDialog: React.FC<BulkAddDialogProps> = ({ open, onOpenChange, categ
             const catOptions = getCatsForGroup(line.macroGroup);
             const subcatOptions = getSubcats(line.categoryId);
             return (
-              <div key={idx} className="grid grid-cols-[160px_110px_1fr_1fr_100px_130px_32px] gap-1.5 items-center">
+              <div key={idx} className="grid grid-cols-[190px_110px_1fr_1fr_100px_130px_32px] gap-1.5 items-center">
                 <div className="flex items-center gap-0.5">
                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => updateLine(idx, { date: adjustDate(line.date, -1) })}>
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </Button>
-                  <Input type="date" value={line.date} onChange={e => updateLine(idx, { date: e.target.value })} className="h-8 text-xs px-1" />
+                  <Input type="date" value={line.date} onChange={e => updateLine(idx, { date: e.target.value })} className="h-8 text-xs px-1 min-w-0" />
                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => updateLine(idx, { date: adjustDate(line.date, 1) })}>
                     <ChevronRight className="h-3.5 w-3.5" />
                   </Button>
