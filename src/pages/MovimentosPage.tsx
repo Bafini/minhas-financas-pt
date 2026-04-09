@@ -312,6 +312,10 @@ const MovimentosPage: React.FC = () => {
               className="h-8 w-[150px] text-sm"
             />
           </div>
+          <Button variant="outline" onClick={() => setBulkOpen(true)}>
+            <ListPlus className="mr-2 h-4 w-4" />
+            Adicionar Vários
+          </Button>
           <Button variant="outline" onClick={() => setInlineOpen(!inlineOpen)}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar Rápido
