@@ -73,6 +73,11 @@ const MovimentosPage: React.FC = () => {
   const [fuelCards, setFuelCards] = useState<FuelCard[]>([]);
   const [movementsUpdatedUntil, setMovementsUpdatedUntil] = useState('');
 
+  // Duplicate & Bulk dialogs
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicateTx, setDuplicateTx] = useState<TransactionRow | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+
   const pageSize = 50;
 
   const loadData = useCallback(async () => {
