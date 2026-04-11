@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { logAudit } from '@/lib/auditLogger';
 
 const DEMO_EMAIL = 'demo@demo.com';
 
@@ -46,8 +47,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    if (data.user) {
+      logAudit({ userId: data.user.id, action: 'login', entityType: 'session', source: 'manual' });
+    }
   };
 
   const signUp = async (email: string, password: string, displayName?: string) => {
