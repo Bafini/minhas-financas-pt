@@ -84,7 +84,7 @@ const BulkAddDialog: React.FC<BulkAddDialogProps> = ({ open, onOpenChange, categ
 
   const addLine = () => {
     const last = lines[lines.length - 1] || emptyLine();
-    setLines(prev => [...prev, { ...emptyLine(), macroGroup: last.macroGroup, categoryId: last.categoryId, subcategoryId: last.subcategoryId, eventLabel: last.eventLabel }]);
+    setLines(prev => [...prev, { ...emptyLine(), date: last.date, macroGroup: last.macroGroup, categoryId: last.categoryId, subcategoryId: last.subcategoryId, eventLabel: last.eventLabel }]);
   };
 
   const removeLine = (idx: number) => {
@@ -94,11 +94,16 @@ const BulkAddDialog: React.FC<BulkAddDialogProps> = ({ open, onOpenChange, categ
 
   const updateLine = (idx: number, updates: Partial<BulkLine>) => {
     setLines(prev => prev.map((l, i) => {
-      if (i !== idx) return l;
-      const updated = { ...l, ...updates };
-      if ('macroGroup' in updates) { updated.categoryId = ''; updated.subcategoryId = ''; }
-      if ('categoryId' in updates) { updated.subcategoryId = ''; }
-      return updated;
+      if (i < idx) return l;
+      if (i === idx) {
+        const updated = { ...l, ...updates };
+        if ('macroGroup' in updates) { updated.categoryId = ''; updated.subcategoryId = ''; }
+        if ('categoryId' in updates) { updated.subcategoryId = ''; }
+        return updated;
+      }
+      // i > idx: propagar data para linhas seguintes
+      if ('date' in updates) return { ...l, date: updates.date! };
+      return l;
     }));
   };
 
