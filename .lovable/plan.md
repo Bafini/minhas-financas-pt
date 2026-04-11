@@ -1,43 +1,29 @@
 
 
-## Plano: Propagar data para linhas seguintes no BulkAddDialog
+## Correção: Data não propaga no BulkAddDialog
 
-### Alterações em `src/components/movimentos/BulkAddDialog.tsx`
+### Problema
+A função `addLine` lê `lines[lines.length - 1]` fora do `setLines` updater, o que pode capturar um valor desatualizado (stale closure). Quando o React ainda não fez re-render após a última alteração de data, `lines` tem o valor antigo.
 
-**1. `updateLine`** — quando o campo alterado for `date`, propagar a nova data para todas as linhas com índice superior:
+### Solução em `src/components/movimentos/BulkAddDialog.tsx`
 
-```typescript
-const updateLine = (idx: number, updates: Partial<BulkLine>) => {
-  setLines(prev => prev.map((l, i) => {
-    if (i < idx) return l;
-    if (i === idx) {
-      const updated = { ...l, ...updates };
-      if ('macroGroup' in updates) { updated.categoryId = ''; updated.subcategoryId = ''; }
-      if ('categoryId' in updates) { updated.subcategoryId = ''; }
-      return updated;
-    }
-    // i > idx: propagar data
-    if ('date' in updates) return { ...l, date: updates.date! };
-    return l;
-  }));
-};
-```
-
-**2. `addLine`** — já herda grupo/categoria/evento da última linha; adicionar também a **data**:
+Mover a leitura do último registo para dentro do functional updater:
 
 ```typescript
 const addLine = () => {
-  const last = lines[lines.length - 1] || emptyLine();
-  setLines(prev => [...prev, {
-    ...emptyLine(),
-    date: last.date,
-    macroGroup: last.macroGroup,
-    categoryId: last.categoryId,
-    subcategoryId: last.subcategoryId,
-    eventLabel: last.eventLabel,
-  }]);
+  setLines(prev => {
+    const last = prev[prev.length - 1] || emptyLine();
+    return [...prev, {
+      ...emptyLine(),
+      date: last.date,
+      macroGroup: last.macroGroup,
+      categoryId: last.categoryId,
+      subcategoryId: last.subcategoryId,
+      eventLabel: last.eventLabel,
+    }];
+  });
 };
 ```
 
-Ficheiro único a editar: `src/components/movimentos/BulkAddDialog.tsx` (2 alterações pontuais).
+Ficheiro único, alteração de ~4 linhas.
 
