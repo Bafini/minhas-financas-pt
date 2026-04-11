@@ -83,8 +83,10 @@ const BulkAddDialog: React.FC<BulkAddDialogProps> = ({ open, onOpenChange, categ
   }, [sharedEvent]);
 
   const addLine = () => {
-    const last = lines[lines.length - 1] || emptyLine();
-    setLines(prev => [...prev, { ...emptyLine(), date: last.date, macroGroup: last.macroGroup, categoryId: last.categoryId, subcategoryId: last.subcategoryId, eventLabel: last.eventLabel }]);
+    setLines(prev => {
+      const last = prev[prev.length - 1] || emptyLine();
+      return [...prev, { ...emptyLine(), date: last.date, macroGroup: last.macroGroup, categoryId: last.categoryId, subcategoryId: last.subcategoryId, eventLabel: last.eventLabel }];
+    });
   };
 
   const removeLine = (idx: number) => {
