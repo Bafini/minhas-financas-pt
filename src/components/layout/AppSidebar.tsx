@@ -33,6 +33,7 @@ import {
   CreditCard,
   Users,
   ArrowRightLeft,
+  ScrollText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePrivacy } from '@/contexts/PrivacyContext';
@@ -57,6 +58,7 @@ const manageNav = [
   { title: 'Cartões', icon: CreditCard, path: '/cartoes' },
   { title: 'Eventos', icon: Tag, path: '/eventos' },
   { title: 'Integrações', icon: Upload, path: '/integracoes' },
+  { title: 'Logs', icon: ScrollText, path: '/logs' },
   { title: 'Definições', icon: Settings, path: '/definicoes' },
 ];
 

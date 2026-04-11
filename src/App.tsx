@@ -19,6 +19,7 @@ import DefinicoesPage from "./pages/DefinicoesPage";
 import { RendimentosPage, DespesasPage, InvestimentosPage } from "./pages/GroupPage";
 import ComparacoesPage from "./pages/ComparacoesPage";
 import CartoesPage from "./pages/CartoesPage";
+import LogsPage from "./pages/LogsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/cartoes" element={<CartoesPage />} />
               <Route path="/eventos" element={<EventosPage />} />
               <Route path="/integracoes" element={<IntegracoesPage />} />
+              <Route path="/logs" element={<LogsPage />} />
               <Route path="/definicoes" element={<DefinicoesPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />

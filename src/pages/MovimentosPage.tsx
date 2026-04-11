@@ -5,6 +5,7 @@ import { fetchTransactions, fetchCategories, fetchEventLabels, TransactionRow } 
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { fetchFuelCards, recalculateFuelCardIncome, FuelCard, getCardsForSubcategory, hasCardsForSubcategory } from '@/lib/fuelCardHelpers';
 import { supabase } from '@/integrations/supabase/client';
+import { logAudit } from '@/lib/auditLogger';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -158,12 +159,15 @@ const MovimentosPage: React.FC = () => {
 
     try {
       if (newTx) {
-        const { error } = await supabase.from('transactions').insert(payload);
+        const { data: inserted, error } = await supabase.from('transactions').insert(payload).select().single();
         if (error) throw error;
+        logAudit({ userId: activeUserId, action: 'insert', entityType: 'transaction', entityId: inserted.id, newData: payload, source: 'manual' });
         toast.success('Movimento criado');
       } else if (editTx) {
+        const oldData = { ...editTx };
         const { error } = await supabase.from('transactions').update(payload).eq('id', editTx.id);
         if (error) throw error;
+        logAudit({ userId: activeUserId, action: 'update', entityType: 'transaction', entityId: editTx.id, oldData, newData: payload, source: 'manual' });
         toast.success('Movimento atualizado');
       }
       // Recalculate fuel card income for this month if a fuel card was involved
@@ -181,15 +185,17 @@ const MovimentosPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (isDemo) { toast.error('A conta demo não permite apagar dados'); return; }
     if (!confirm('Eliminar este movimento?')) return;
+    const deletedTx = transactions.find(t => t.id === id);
     const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (error) {
       toast.error(error.message);
     } else {
-      // Check if deleted tx had a fuel card — recalculate
-      const deletedTx = transactions.find(t => t.id === id);
-      if (deletedTx && deletedTx.fuel_card_id) {
-        const d = new Date(deletedTx.date);
-        await recalculateFuelCardIncome(activeUserId, d.getFullYear(), d.getMonth() + 1, deletedTx.fuel_card_id);
+      if (deletedTx) {
+        logAudit({ userId: activeUserId, action: 'delete', entityType: 'transaction', entityId: id, oldData: deletedTx, source: 'manual' });
+        if (deletedTx.fuel_card_id) {
+          const d = new Date(deletedTx.date);
+          await recalculateFuelCardIncome(activeUserId, d.getFullYear(), d.getMonth() + 1, deletedTx.fuel_card_id);
+        }
       }
       toast.success('Movimento eliminado');
       loadData();
@@ -210,8 +216,9 @@ const MovimentosPage: React.FC = () => {
       fuel_card_id: fuelCardIdValue,
     };
     try {
-      const { error } = await supabase.from('transactions').insert(payload);
+      const { data: inserted, error } = await supabase.from('transactions').insert(payload).select().single();
       if (error) throw error;
+      logAudit({ userId: activeUserId, action: 'insert', entityType: 'transaction', entityId: inserted.id, newData: payload, source: 'manual' });
       toast.success('Movimento criado');
       if (fuelCardIdValue) {
         const d = new Date(inlineDate);
@@ -253,8 +260,13 @@ const MovimentosPage: React.FC = () => {
       event_label: duplicateTx.event_label,
       fuel_card_id: duplicateTx.fuel_card_id,
     }));
-    const { error } = await supabase.from('transactions').insert(payloads);
+    const { data: inserted, error } = await supabase.from('transactions').insert(payloads).select();
     if (error) { toast.error(error.message); throw error; }
+    if (inserted) {
+      for (const row of inserted) {
+        logAudit({ userId: activeUserId, action: 'insert', entityType: 'transaction', entityId: row.id, newData: row, source: 'duplicate' });
+      }
+    }
     toast.success(`${lines.length} movimento(s) criado(s)`);
     // Recalculate fuel cards if needed
     if (duplicateTx.fuel_card_id) {
@@ -270,8 +282,13 @@ const MovimentosPage: React.FC = () => {
   const handleBulkSubmit = async (lines: { date: string; macro_group: MacroGroup; category_id: string | null; subcategory_id: string | null; amount: number; event_label: string | null }[]) => {
     if (!user) return;
     const payloads = lines.map(l => ({ ...l, user_id: activeUserId }));
-    const { error } = await supabase.from('transactions').insert(payloads);
+    const { data: inserted, error } = await supabase.from('transactions').insert(payloads).select();
     if (error) { toast.error(error.message); throw error; }
+    if (inserted) {
+      for (const row of inserted) {
+        logAudit({ userId: activeUserId, action: 'insert', entityType: 'transaction', entityId: row.id, newData: row, source: 'bulk' });
+      }
+    }
     toast.success(`${lines.length} movimento(s) criado(s)`);
     loadData();
   };
