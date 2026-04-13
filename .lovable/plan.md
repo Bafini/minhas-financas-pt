@@ -1,29 +1,33 @@
 
 
-## Correção: Data não propaga no BulkAddDialog
+## Plano: Subcategorias na tabela + clique para filtrar gráfico
 
-### Problema
-A função `addLine` lê `lines[lines.length - 1]` fora do `setLines` updater, o que pode capturar um valor desatualizado (stale closure). Quando o React ainda não fez re-render após a última alteração de data, `lines` tem o valor antigo.
+### Alterações em `src/pages/GroupPage.tsx`
 
-### Solução em `src/components/movimentos/BulkAddDialog.tsx`
+**1. Novo estado `selectedSubcategory`**
+Adicionar estado para filtrar por subcategoria, além da categoria já existente.
 
-Mover a leitura do último registo para dentro do functional updater:
+**2. Expandir tabela "Por Categoria" com subcategorias**
+- Cada linha de categoria torna-se clicável (cursor pointer) e ao clicar filtra por essa categoria
+- Abaixo de cada categoria, listar as suas subcategorias (indentadas) com os mesmos valores (total, prevTotal, variação, % do total)
+- Subcategorias também clicáveis para filtrar o gráfico por subcategoria
+- Linha ativa destacada com fundo colorido
 
-```typescript
-const addLine = () => {
-  setLines(prev => {
-    const last = prev[prev.length - 1] || emptyLine();
-    return [...prev, {
-      ...emptyLine(),
-      date: last.date,
-      macroGroup: last.macroGroup,
-      categoryId: last.categoryId,
-      subcategoryId: last.subcategoryId,
-      eventLabel: last.eventLabel,
-    }];
-  });
-};
-```
+**3. Filtro de transações atualizado**
+- `filteredTx` e `filteredPrevTx` passam a considerar também `selectedSubcategory`
+- Se `selectedSubcategory` estiver ativo, filtra por `subcategory_id`
+- Se apenas `selectedCategory` estiver ativo, filtra por `category_id`
+- Clicar na mesma categoria/subcategoria remove o filtro (toggle)
 
-Ficheiro único, alteração de ~4 linhas.
+**4. Dados de subcategoria (`bySubcat`)**
+- Novo `useMemo` que agrupa transações por subcategoria dentro de cada categoria
+- Usado para renderizar as linhas de subcategoria na tabela
+
+**5. Indicação visual**
+- Categoria selecionada com fundo `bg-muted`
+- Subcategoria selecionada com fundo `bg-muted/50`
+- Botão "Limpar filtro" visível quando há filtro ativo na tabela
+
+### Ficheiro a editar
+- `src/pages/GroupPage.tsx` (ficheiro único)
 
