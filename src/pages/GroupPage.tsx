@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,8 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, PiggyBank } from 'lucide-react';
+import { TrendingUp, TrendingDown, PiggyBank, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GroupPageProps {
@@ -32,6 +33,8 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [tableFilterCatId, setTableFilterCatId] = useState<string | null>(null);
+  const [tableFilterSubcatId, setTableFilterSubcatId] = useState<string | null>(null);
 
   const [period, setPeriod] = useState<PeriodFilterState>({
     preset: 'YTD',
@@ -61,7 +64,8 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
     });
   }, [user, activeUserId, range, macroGroup]);
 
-  const filteredTx = useMemo(() => {
+  // Apply dropdown category filter first
+  const dropdownFilteredTx = useMemo(() => {
     if (selectedCategory === 'all') return transactions;
     return transactions.filter(t => t.category_id === selectedCategory);
   }, [transactions, selectedCategory]);
@@ -79,15 +83,27 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
     return prevTransactions.filter(t => t.date <= capDate);
   }, [prevTransactions, lastDataDate, period.compareYear, period.preset]);
 
-  const filteredPrevTx = useMemo(() => {
+  const dropdownFilteredPrevTx = useMemo(() => {
     if (selectedCategory === 'all') return cappedPrevTransactions;
     return cappedPrevTransactions.filter(t => t.category_id === selectedCategory);
   }, [cappedPrevTransactions, selectedCategory]);
 
+  // Apply table click filter on top of dropdown filter
+  const filteredTx = useMemo(() => {
+    if (tableFilterSubcatId) return dropdownFilteredTx.filter(t => t.subcategory_id === tableFilterSubcatId);
+    if (tableFilterCatId) return dropdownFilteredTx.filter(t => t.category_id === tableFilterCatId);
+    return dropdownFilteredTx;
+  }, [dropdownFilteredTx, tableFilterCatId, tableFilterSubcatId]);
+
+  const filteredPrevTx = useMemo(() => {
+    if (tableFilterSubcatId) return dropdownFilteredPrevTx.filter(t => t.subcategory_id === tableFilterSubcatId);
+    if (tableFilterCatId) return dropdownFilteredPrevTx.filter(t => t.category_id === tableFilterCatId);
+    return dropdownFilteredPrevTx;
+  }, [dropdownFilteredPrevTx, tableFilterCatId, tableFilterSubcatId]);
+
   const total = useMemo(() => filteredTx.reduce((s, t) => s + Number(t.amount), 0), [filteredTx]);
   const prevTotal = useMemo(() => filteredPrevTx.reduce((s, t) => s + Number(t.amount), 0), [filteredPrevTx]);
 
-  // Count distinct months with data for average
   const activeMonths = useMemo(() => {
     const months = new Set(filteredTx.map(t => new Date(t.date).getMonth()));
     return Math.max(months.size, 1);
@@ -97,20 +113,35 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
     return Math.max(months.size, 1);
   }, [filteredPrevTx]);
 
+  // Build category + subcategory breakdown from unfiltered (dropdown-only) data
   const byCat = useMemo(() => {
-    const map: Record<string, { name: string; total: number; prevTotal: number }> = {};
-    filteredTx.forEach(t => {
-      const name = t.categories?.name || 'Sem categoria';
-      if (!map[name]) map[name] = { name, total: 0, prevTotal: 0 };
-      map[name].total += Number(t.amount);
+    const map: Record<string, { catId: string; name: string; total: number; prevTotal: number; subs: Record<string, { subId: string; name: string; total: number; prevTotal: number }> }> = {};
+    dropdownFilteredTx.forEach(t => {
+      const catName = t.categories?.name || 'Sem categoria';
+      const catId = t.category_id || 'none';
+      if (!map[catId]) map[catId] = { catId, name: catName, total: 0, prevTotal: 0, subs: {} };
+      map[catId].total += Number(t.amount);
+      if (t.subcategory_id) {
+        const subName = t.subcategories?.name || 'Sem subcategoria';
+        if (!map[catId].subs[t.subcategory_id]) map[catId].subs[t.subcategory_id] = { subId: t.subcategory_id, name: subName, total: 0, prevTotal: 0 };
+        map[catId].subs[t.subcategory_id].total += Number(t.amount);
+      }
     });
-    filteredPrevTx.forEach(t => {
-      const name = t.categories?.name || 'Sem categoria';
-      if (!map[name]) map[name] = { name, total: 0, prevTotal: 0 };
-      map[name].prevTotal += Number(t.amount);
+    dropdownFilteredPrevTx.forEach(t => {
+      const catName = t.categories?.name || 'Sem categoria';
+      const catId = t.category_id || 'none';
+      if (!map[catId]) map[catId] = { catId, name: catName, total: 0, prevTotal: 0, subs: {} };
+      map[catId].prevTotal += Number(t.amount);
+      if (t.subcategory_id) {
+        const subName = t.subcategories?.name || 'Sem subcategoria';
+        if (!map[catId].subs[t.subcategory_id]) map[catId].subs[t.subcategory_id] = { subId: t.subcategory_id, name: subName, total: 0, prevTotal: 0 };
+        map[catId].subs[t.subcategory_id].prevTotal += Number(t.amount);
+      }
     });
     return Object.values(map).sort((a, b) => b.total - a.total);
-  }, [filteredTx, filteredPrevTx]);
+  }, [dropdownFilteredTx, dropdownFilteredPrevTx]);
+
+  const grandTotal = useMemo(() => dropdownFilteredTx.reduce((s, t) => s + Number(t.amount), 0), [dropdownFilteredTx]);
 
   const monthly = useMemo(() => {
     const months: Record<number, number> = {};
@@ -124,6 +155,32 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
       [period.compareYear]: prevMonths[i + 1],
     }));
   }, [filteredTx, filteredPrevTx, period.year, period.compareYear]);
+
+  const handleCatClick = useCallback((catId: string) => {
+    if (tableFilterCatId === catId && !tableFilterSubcatId) {
+      setTableFilterCatId(null);
+    } else {
+      setTableFilterCatId(catId);
+      setTableFilterSubcatId(null);
+    }
+  }, [tableFilterCatId, tableFilterSubcatId]);
+
+  const handleSubcatClick = useCallback((catId: string, subId: string) => {
+    if (tableFilterSubcatId === subId) {
+      setTableFilterSubcatId(null);
+      setTableFilterCatId(null);
+    } else {
+      setTableFilterCatId(catId);
+      setTableFilterSubcatId(subId);
+    }
+  }, [tableFilterSubcatId]);
+
+  const clearTableFilter = useCallback(() => {
+    setTableFilterCatId(null);
+    setTableFilterSubcatId(null);
+  }, []);
+
+  const hasTableFilter = tableFilterCatId || tableFilterSubcatId;
 
   if (loading) return <div className="py-20 text-center text-muted-foreground">A carregar...</div>;
 
@@ -140,7 +197,7 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
           <PeriodFilter value={period} onChange={setPeriod} />
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Categoria</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <Select value={selectedCategory} onValueChange={(v) => { setSelectedCategory(v); clearTableFilter(); }}>
               <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
@@ -176,7 +233,14 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
       </Card>
 
       <Card className="glass-surface">
-        <CardHeader><CardTitle className="text-base">Por Categoria</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Por Categoria</CardTitle>
+          {hasTableFilter && (
+            <Button variant="ghost" size="sm" onClick={clearTableFilter} className="h-7 gap-1 text-xs text-muted-foreground">
+              <X className="h-3 w-3" /> Limpar filtro
+            </Button>
+          )}
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -191,17 +255,44 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
             <TableBody>
               {byCat.map(cat => {
                 const delta = calculateDelta(cat.total, cat.prevTotal);
-                const weight = total > 0 ? (cat.total / total) * 100 : 0;
+                const weight = grandTotal > 0 ? (cat.total / grandTotal) * 100 : 0;
+                const isCatActive = tableFilterCatId === cat.catId && !tableFilterSubcatId;
+                const subs = Object.values(cat.subs).sort((a, b) => b.total - a.total);
                 return (
-                  <TableRow key={cat.name}>
-                    <TableCell className="text-sm font-medium">{cat.name}</TableCell>
-                    <TableCell className="text-right financial-value text-sm">{formatCurrency(cat.total)}</TableCell>
-                    <TableCell className="text-right financial-value text-sm text-muted-foreground">{formatCurrency(cat.prevTotal)}</TableCell>
-                    <TableCell className={cn('text-right text-sm font-medium', delta.percentage > 0 ? 'text-expense' : 'text-income')}>
-                      {formatPercentage(delta.percentage)}
-                    </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">{weight.toFixed(1)}%</TableCell>
-                  </TableRow>
+                  <React.Fragment key={cat.catId}>
+                    <TableRow
+                      className={cn('cursor-pointer transition-colors', isCatActive && 'bg-muted')}
+                      onClick={() => handleCatClick(cat.catId)}
+                    >
+                      <TableCell className="text-sm font-medium">{cat.name}</TableCell>
+                      <TableCell className="text-right financial-value text-sm">{formatCurrency(cat.total)}</TableCell>
+                      <TableCell className="text-right financial-value text-sm text-muted-foreground">{formatCurrency(cat.prevTotal)}</TableCell>
+                      <TableCell className={cn('text-right text-sm font-medium', delta.percentage > 0 ? 'text-expense' : 'text-income')}>
+                        {formatPercentage(delta.percentage)}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground">{weight.toFixed(1)}%</TableCell>
+                    </TableRow>
+                    {subs.map(sub => {
+                      const subDelta = calculateDelta(sub.total, sub.prevTotal);
+                      const subWeight = grandTotal > 0 ? (sub.total / grandTotal) * 100 : 0;
+                      const isSubActive = tableFilterSubcatId === sub.subId;
+                      return (
+                        <TableRow
+                          key={sub.subId}
+                          className={cn('cursor-pointer transition-colors', isSubActive ? 'bg-muted/50' : 'hover:bg-muted/30')}
+                          onClick={(e) => { e.stopPropagation(); handleSubcatClick(cat.catId, sub.subId); }}
+                        >
+                          <TableCell className="text-sm pl-8 text-muted-foreground">{sub.name}</TableCell>
+                          <TableCell className="text-right financial-value text-sm">{formatCurrency(sub.total)}</TableCell>
+                          <TableCell className="text-right financial-value text-sm text-muted-foreground">{formatCurrency(sub.prevTotal)}</TableCell>
+                          <TableCell className={cn('text-right text-sm font-medium', subDelta.percentage > 0 ? 'text-expense' : 'text-income')}>
+                            {formatPercentage(subDelta.percentage)}
+                          </TableCell>
+                          <TableCell className="text-right text-sm text-muted-foreground">{subWeight.toFixed(1)}%</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </React.Fragment>
                 );
               })}
             </TableBody>
