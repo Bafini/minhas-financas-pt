@@ -383,12 +383,20 @@ const IntegracoesPage: React.FC = () => {
         <p className="text-sm text-muted-foreground">Importar e exportar transações em formato CSV</p>
       </div>
 
-      <Tabs defaultValue="import" className="space-y-4">
+      <Tabs defaultValue="bank" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="import"><Upload className="mr-2 h-4 w-4" />Importar</TabsTrigger>
+          <TabsTrigger value="bank"><Upload className="mr-2 h-4 w-4" />Importar Banco</TabsTrigger>
+          <TabsTrigger value="rules"><Settings2 className="mr-2 h-4 w-4" />Regras</TabsTrigger>
+          <TabsTrigger value="legacy"><FileText className="mr-2 h-4 w-4" />Importar (genérico)</TabsTrigger>
           <TabsTrigger value="export"><Download className="mr-2 h-4 w-4" />Exportar</TabsTrigger>
         </TabsList>
-        <TabsContent value="import" className="space-y-4">
+        <TabsContent value="bank" className="space-y-4">
+          <BankImportTab userId={activeUserId} />
+        </TabsContent>
+        <TabsContent value="rules" className="space-y-4">
+          <ImportRulesTab userId={activeUserId} />
+        </TabsContent>
+        <TabsContent value="legacy" className="space-y-4">
           <ImportTab userId={activeUserId} dateFormat={dateFormat} />
         </TabsContent>
         <TabsContent value="export" className="space-y-4">
