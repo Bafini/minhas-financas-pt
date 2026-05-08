@@ -386,6 +386,34 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      <Select
+                        value={row.recurringRuleId || '__none__'}
+                        onValueChange={(v) => {
+                          if (v === '__none__') {
+                            updateRow(row.rowId, { recurringRuleId: null });
+                          } else {
+                            const rec = recurrings.find((x: any) => x.id === v);
+                            if (rec) {
+                              updateRow(row.rowId, {
+                                recurringRuleId: v,
+                                categoryId: rec.category_id,
+                                subcategoryId: rec.subcategory_id,
+                                macroGroup: rec.macro_group,
+                              });
+                            }
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— Nenhuma —</SelectItem>
+                          {recurrings.map((r: any) => (
+                            <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell className="text-center">
                       <Checkbox checked={row.ignore} onCheckedChange={(v) => updateRow(row.rowId, { ignore: !!v })} />
                     </TableCell>
