@@ -243,18 +243,30 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       status: 'processing',
     }).select().single();
 
-    const toImport = rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting);
+    const toImport = rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date));
     setImportTotal(toImport.length); setImportProgress(0);
     let imported = 0;
     let errors = 0;
     const ignored = rows.filter(r => r.ignore).length;
     const duplicates = rows.filter(r => r.isDuplicate || r.isExisting).length;
+    const skippedByDate = rows.filter(r => isBeforeCutoff(r.date) && !r.ignore && !r.isDuplicate && !r.isExisting).length;
 
     const replacedAutoIds = new Set<string>();
     const updatedRuleIds = new Set<string>();
+    let maxImportedDate: string | null = null;
 
     for (let i = 0; i < toImport.length; i++) {
       const row = toImport[i];
+
+      const diverges = row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - row.amount) > 0.005;
+      const useRuleAmount = diverges && row.divergenceResolution === 'rule';
+      const finalAmount = useRuleAmount ? (row.recurringExpectedAmount as number) : row.amount;
+      let finalNotes = row.description;
+      if (useRuleAmount) {
+        const diff = row.amount - (row.recurringExpectedAmount as number);
+        const sign = diff >= 0 ? '+' : '';
+        finalNotes = `${row.description} | Diferença vs ficheiro: ${sign}${formatCurrency(diff)}`;
+      }
 
       // Replace auto-generated transaction (only first occurrence per period)
       if (row.recurringRuleId && row.replacesAutoId && !replacedAutoIds.has(row.replacesAutoId)) {
@@ -265,8 +277,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       const { error } = await supabase.from('transactions').insert({
         user_id: userId,
         date: row.date,
-        amount: row.amount,
-        notes: row.description,
+        amount: finalAmount,
+        notes: finalNotes,
         category_id: row.categoryId,
         subcategory_id: row.subcategoryId,
         macro_group: row.macroGroup,
@@ -279,15 +291,14 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       });
       if (error) errors++; else {
         imported++;
+        if (!maxImportedDate || row.date > maxImportedDate) maxImportedDate = row.date;
 
-        // Update recurring rule amount if it differs (first occurrence per rule only)
-        if (row.recurringRuleId && row.recurringExpectedAmount !== null && !updatedRuleIds.has(row.recurringRuleId)) {
-          if (Math.abs(row.recurringExpectedAmount - row.amount) > 0.005) {
-            const rec = recurrings.find((x: any) => x.id === row.recurringRuleId);
-            await supabase.from('recurring_rules').update({ amount: row.amount }).eq('id', row.recurringRuleId);
-            toast.info(`Valor da recorrência «${rec?.name || ''}» atualizado: ${formatCurrency(row.recurringExpectedAmount)} → ${formatCurrency(row.amount)}`);
-            updatedRuleIds.add(row.recurringRuleId);
-          }
+        // Update recurring rule amount only when user chose 'file' resolution
+        if (diverges && !useRuleAmount && row.recurringRuleId && !updatedRuleIds.has(row.recurringRuleId)) {
+          const rec = recurrings.find((x: any) => x.id === row.recurringRuleId);
+          await supabase.from('recurring_rules').update({ amount: row.amount }).eq('id', row.recurringRuleId);
+          toast.info(`Valor da recorrência «${rec?.name || ''}» atualizado: ${formatCurrency(row.recurringExpectedAmount as number)} → ${formatCurrency(row.amount)}`);
+          updatedRuleIds.add(row.recurringRuleId);
         }
 
         if ((row.categoryId || row.recurringRuleId) && !row.matchedRuleId) {
@@ -306,7 +317,12 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       }).eq('id', importRecord.id);
     }
 
-    setResult({ imported, ignored, duplicates, errors });
+    if (maxImportedDate && (!lastUpdatedDate || maxImportedDate > lastUpdatedDate)) {
+      await supabase.from('profiles').update({ movements_updated_until: maxImportedDate }).eq('user_id', userId);
+      setLastUpdatedDate(maxImportedDate);
+    }
+
+    setResult({ imported, ignored, duplicates, errors, skippedByDate });
     setStep('done');
     toast.success(`${imported} movimentos importados`);
   };
