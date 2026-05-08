@@ -122,7 +122,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       let recurringExpectedAmount: number | null = null;
       if (recurringRuleId) {
         const d = new Date(r.date);
-        const found = autoByRulePeriod.get(`${recurringRuleId}|${d.getFullYear()}-${d.getMonth()}`);
+        const found = autoByRulePeriodLocal.get(`${recurringRuleId}|${d.getFullYear()}-${d.getMonth()}`);
         if (found) { replacesAutoId = found.id; recurringExpectedAmount = found.amount; }
         const rec = recurrings.find((x: any) => x.id === recurringRuleId);
         if (rec && recurringExpectedAmount === null) recurringExpectedAmount = Number(rec.amount);
