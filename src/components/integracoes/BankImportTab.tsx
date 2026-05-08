@@ -638,9 +638,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       </Card>
 
       <div className="flex gap-3">
-        <Button onClick={handleImport} disabled={counts.total - counts.ignored - counts.duplicates === 0}>
+        <Button onClick={handleImport} disabled={counts.importable === 0}>
           <CheckCircle2 className="mr-2 h-4 w-4" />
-          Importar {counts.total - counts.ignored - counts.duplicates} movimentos
+          Importar {counts.importable} movimentos
         </Button>
         <Button variant="outline" onClick={() => { setStep('upload'); setFile(null); setRows([]); }}>Cancelar</Button>
       </div>
