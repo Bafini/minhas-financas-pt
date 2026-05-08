@@ -258,6 +258,20 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     });
 
     setRows(preview);
+    setPreviewBankSource(parsed.bankSource);
+    try {
+      const { data: lastData } = await supabase
+        .from('transactions')
+        .select('id, date, amount, notes, macro_group, category_id')
+        .eq('user_id', userId)
+        .eq('bank_source', parsed.bankSource)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(5);
+      setLastImported((lastData || []) as any);
+    } catch {
+      setLastImported([]);
+    }
     setStep('preview');
   }, [file, bank, userId, rules, recurrings, defaultDivergenceResolution]);
 
