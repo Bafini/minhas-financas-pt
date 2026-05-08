@@ -428,7 +428,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {BANK_OPTIONS.map(b => (
-                  <SelectItem key={b.value} value={b.value} disabled={b.value === 'wizink'}>{b.label}</SelectItem>
+                  <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
