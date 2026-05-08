@@ -109,6 +109,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         macroGroup,
         categoryId: match?.rule.category_id || null,
         subcategoryId: match?.rule.subcategory_id || null,
+        recurringRuleId: (match?.rule as any)?.recurring_rule_id || null,
       };
     });
 
