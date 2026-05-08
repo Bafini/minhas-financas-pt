@@ -173,14 +173,14 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     setAutoByRulePeriod(autoByRulePeriodLocal);
 
     const findPossibleDuplicate = (r: ParsedBankRow): PossibleDuplicate | null => {
-      const amountKey = r.amount.toFixed(2);
+      const amountKey = Math.abs(r.amount).toFixed(2);
       const refKey = r.externalRef || '';
-      const strictKey = `${r.date}|${r.amount}|${r.bankSource}|${refKey}`;
+      const strictKey = `${r.date}|${amountKey}|${r.bankSource}|${refKey}`;
       // Same date + amount, different ref/bank
       const sameDay = existingByDateAmount.get(`${r.date}|${amountKey}`) || [];
       for (const e of sameDay) {
         const eRef = e.external_ref || e.notes || '';
-        const eKey = `${e.date}|${e.amount}|${e.bank_source || 'manual'}|${eRef}`;
+        const eKey = `${e.date}|${Math.abs(Number(e.amount)).toFixed(2)}|${e.bank_source || 'manual'}|${eRef}`;
         if (eKey === strictKey) continue;
         return {
           id: e.id, date: e.date, amount: Number(e.amount),
