@@ -378,7 +378,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">{row.date}</TableCell>
                     <TableCell className="text-xs max-w-[220px]">
                       <div className="truncate" title={row.description}>{row.description}</div>
-                      <div className="flex gap-1 mt-0.5">
+                      <div className="flex flex-wrap gap-1 mt-0.5">
                         {row.matchedRuleId && !row.matchedIgnore && (
                           <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
                             {row.matchedAuto ? 'auto' : 'regra'}
@@ -386,6 +386,14 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         )}
                         {(row.isDuplicate || row.isExisting) && (
                           <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">duplicado</Badge>
+                        )}
+                        {row.replacesAutoId && (
+                          <Badge className="text-[10px] px-1 py-0 h-4 bg-primary/10 text-primary border-0">substitui auto-gerada</Badge>
+                        )}
+                        {row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - row.amount) > 0.005 && (
+                          <Badge className="text-[10px] px-1 py-0 h-4 bg-warning-muted text-warning border-0">
+                            valor difere: {formatCurrency(row.recurringExpectedAmount)} → {formatCurrency(row.amount)}
+                          </Badge>
                         )}
                       </div>
                     </TableCell>
