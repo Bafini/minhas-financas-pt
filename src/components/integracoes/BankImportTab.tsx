@@ -708,7 +708,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                               const d = new Date(row.date);
                               const found = autoByRulePeriod.get(`${v}|${d.getFullYear()}-${d.getMonth()}`);
                               const expected = found ? found.amount : Number(rec.amount);
-                              const diverges = Math.abs(expected - row.amount) > 0.005;
+                              const diverges = Math.abs(expected - Math.abs(row.amount)) > 0.005;
                               updateRow(row.rowId, {
                                 recurringRuleId: v,
                                 categoryId: rec.category_id,
