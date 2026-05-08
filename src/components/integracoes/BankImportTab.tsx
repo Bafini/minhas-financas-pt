@@ -327,13 +327,18 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     toast.success(`${imported} movimentos importados`);
   };
 
-  const counts = useMemo(() => ({
-    total: rows.length,
-    auto: rows.filter(r => r.matchedRuleId && !r.matchedIgnore).length,
-    pending: rows.filter(r => !r.ignore && !r.categoryId && !r.isDuplicate && !r.isExisting).length,
-    ignored: rows.filter(r => r.ignore).length,
-    duplicates: rows.filter(r => r.isDuplicate || r.isExisting).length,
-  }), [rows]);
+  const counts = useMemo(() => {
+    const skippedByDate = rows.filter(r => isBeforeCutoff(r.date)).length;
+    return {
+      total: rows.length,
+      auto: rows.filter(r => r.matchedRuleId && !r.matchedIgnore).length,
+      pending: rows.filter(r => !r.ignore && !r.categoryId && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date)).length,
+      ignored: rows.filter(r => r.ignore).length,
+      duplicates: rows.filter(r => r.isDuplicate || r.isExisting).length,
+      skippedByDate,
+      importable: rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date)).length,
+    };
+  }, [rows, isBeforeCutoff]);
 
   if (step === 'upload') {
     return (
