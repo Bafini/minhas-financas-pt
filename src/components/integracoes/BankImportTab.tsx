@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchCategories } from '@/lib/queries';
+import { fetchCategories, fetchRecurringRules } from '@/lib/queries';
 import { fetchAllRows } from '@/lib/supabaseHelpers';
 import { parseBankFile, ParsedBankRow, BankSource } from '@/lib/bankParsers';
 import { fetchImportRules, findMatchingRule, learnCategorizeRule, createIgnoreRule, normalizeDescription, ImportRule } from '@/lib/importRules';
