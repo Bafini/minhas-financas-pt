@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchCategories } from '@/lib/queries';
+import { fetchCategories, fetchRecurringRules } from '@/lib/queries';
 import { fetchImportRules, ImportRule } from '@/lib/importRules';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
