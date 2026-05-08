@@ -127,15 +127,32 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
     const existing = await fetchAllRows((sb) =>
       sb.from('transactions')
-        .select('date, amount, external_ref, notes, bank_source')
+        .select('id, date, amount, external_ref, notes, bank_source, category_id')
         .eq('user_id', userId)
         .order('id')
     );
     const existingSet = new Set<string>();
+    const existingByDateAmount = new Map<string, any[]>();
     (existing || []).forEach((e: any) => {
       const ref = e.external_ref || e.notes || '';
       existingSet.add(`${e.date}|${e.amount}|${e.bank_source || 'manual'}|${ref}`);
+      const k = `${e.date}|${Number(e.amount).toFixed(2)}`;
+      const arr = existingByDateAmount.get(k) || [];
+      arr.push(e);
+      existingByDateAmount.set(k, arr);
     });
+
+    // Also index by amount alone, for ±3 days window
+    const existingByAmount = new Map<string, any[]>();
+    (existing || []).forEach((e: any) => {
+      const k = Number(e.amount).toFixed(2);
+      const arr = existingByAmount.get(k) || [];
+      arr.push(e);
+      existingByAmount.set(k, arr);
+    });
+
+    const catNameById = new Map<string, string>();
+    (categories || []).forEach((c: any) => catNameById.set(c.id, c.name));
 
     // Fetch auto-generated recurring transactions to detect replacements
     const autoGen = await fetchAllRows((sb) =>
@@ -154,6 +171,41 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     });
     setAutoByRulePeriod(autoByRulePeriodLocal);
 
+    const findPossibleDuplicate = (r: ParsedBankRow): PossibleDuplicate | null => {
+      const amountKey = r.amount.toFixed(2);
+      const refKey = r.externalRef || '';
+      const strictKey = `${r.date}|${r.amount}|${r.bankSource}|${refKey}`;
+      // Same date + amount, different ref/bank
+      const sameDay = existingByDateAmount.get(`${r.date}|${amountKey}`) || [];
+      for (const e of sameDay) {
+        const eRef = e.external_ref || e.notes || '';
+        const eKey = `${e.date}|${e.amount}|${e.bank_source || 'manual'}|${eRef}`;
+        if (eKey === strictKey) continue;
+        return {
+          id: e.id, date: e.date, amount: Number(e.amount),
+          notes: e.notes, bankSource: e.bank_source,
+          categoryName: e.category_id ? (catNameById.get(e.category_id) || null) : null,
+          daysDiff: 0,
+        };
+      }
+      // ±3 days, same amount
+      const sameAmount = existingByAmount.get(amountKey) || [];
+      const rowDate = new Date(r.date);
+      for (const e of sameAmount) {
+        const eDate = new Date(e.date);
+        const diffDays = Math.round((rowDate.getTime() - eDate.getTime()) / 86400000);
+        if (diffDays === 0) continue;
+        if (Math.abs(diffDays) > 3) continue;
+        return {
+          id: e.id, date: e.date, amount: Number(e.amount),
+          notes: e.notes, bankSource: e.bank_source,
+          categoryName: e.category_id ? (catNameById.get(e.category_id) || null) : null,
+          daysDiff: diffDays,
+        };
+      }
+      return null;
+    };
+
     const preview: PreviewRow[] = parsed.rows.map((r, i) => {
       const match = findMatchingRule(r, rules);
       const isExisting = existingSet.has(`${r.date}|${r.amount}|${r.bankSource}|${r.externalRef}`);
@@ -171,6 +223,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         if (rec && recurringExpectedAmount === null) recurringExpectedAmount = Number(rec.amount);
       }
       const diverges = recurringRuleId && recurringExpectedAmount !== null && Math.abs(recurringExpectedAmount - r.amount) > 0.005;
+      const possibleDuplicateOf = isExisting ? null : findPossibleDuplicate(r);
       return {
         ...r,
         rowId: i,
@@ -178,6 +231,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         isDuplicate: false,
         isExisting,
         matchedRuleId: match?.rule.id || null,
+        matchedRuleField: match?.rule.match_field || null,
         matchedAuto: match?.rule.auto_learned || false,
         matchedIgnore: match?.rule.rule_type === 'ignore' || false,
         macroGroup,
@@ -188,6 +242,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         recurringExpectedAmount,
         divergenceResolution: diverges ? defaultDivergenceResolution : null,
         matchExactAmount: match?.rule.match_field === 'description+amount',
+        possibleDuplicateOf,
+        possibleDuplicateDismissed: false,
       };
     });
 
