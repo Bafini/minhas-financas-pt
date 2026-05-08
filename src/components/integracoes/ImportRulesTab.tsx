@@ -126,6 +126,7 @@ const ImportRulesTab: React.FC<Props> = ({ userId }) => {
                   <TableCell className="text-xs font-mono max-w-[260px] truncate" title={r.match_pattern}>{r.match_pattern}</TableCell>
                   <TableCell className="text-xs">{catName(r.category_id)}</TableCell>
                   <TableCell className="text-xs">{subName(r.category_id, r.subcategory_id)}</TableCell>
+                  <TableCell className="text-xs">{(r as any).recurring_rule_id ? (recurrings.find((x: any) => x.id === (r as any).recurring_rule_id)?.name || '—') : '—'}</TableCell>
                   <TableCell className="text-right tabular-nums text-xs">{r.hit_count}</TableCell>
                   <TableCell className="text-center">
                     <Switch checked={r.is_active} onCheckedChange={() => toggle(r)} />
