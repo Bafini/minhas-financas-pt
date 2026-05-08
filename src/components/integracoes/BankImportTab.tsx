@@ -32,6 +32,8 @@ interface PreviewRow extends ParsedBankRow {
   categoryId: string | null;
   subcategoryId: string | null;
   recurringRuleId: string | null;
+  replacesAutoId: string | null;
+  recurringExpectedAmount: number | null;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
@@ -57,6 +59,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
   const [ignoreDialog, setIgnoreDialog] = useState<{ open: boolean; rowId: number | null; pattern: string }>({ open: false, rowId: null, pattern: '' });
 
   const [recurrings, setRecurrings] = useState<any[]>([]);
+  const [autoByRulePeriod, setAutoByRulePeriod] = useState<Map<string, { id: string; amount: number }>>(new Map());
 
   useEffect(() => {
     fetchCategories(userId).then(setCategories);
@@ -91,12 +94,39 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       existingSet.add(`${e.date}|${e.amount}|${e.bank_source || 'manual'}|${ref}`);
     });
 
+    // Fetch auto-generated recurring transactions to detect replacements
+    const autoGen = await fetchAllRows((sb) =>
+      sb.from('transactions')
+        .select('id, date, amount, recurring_rule_id')
+        .eq('user_id', userId)
+        .eq('auto_generated', true)
+        .not('recurring_rule_id', 'is', null)
+        .order('id')
+    );
+    const autoByRulePeriodLocal = new Map<string, { id: string; amount: number }>();
+    (autoGen || []).forEach((t: any) => {
+      const d = new Date(t.date);
+      const key = `${t.recurring_rule_id}|${d.getFullYear()}-${d.getMonth()}`;
+      autoByRulePeriodLocal.set(key, { id: t.id, amount: Number(t.amount) });
+    });
+    setAutoByRulePeriod(autoByRulePeriodLocal);
+
     const preview: PreviewRow[] = parsed.rows.map((r, i) => {
       const match = findMatchingRule(r, rules);
       const isExisting = existingSet.has(`${r.date}|${r.amount}|${r.bankSource}|${r.externalRef}`);
       const macroGroup: MacroGroup =
         match?.rule.macro_group ||
         (r.amount >= 0 ? 'Rendimentos' : 'Despesas');
+      const recurringRuleId = (match?.rule as any)?.recurring_rule_id || null;
+      let replacesAutoId: string | null = null;
+      let recurringExpectedAmount: number | null = null;
+      if (recurringRuleId) {
+        const d = new Date(r.date);
+        const found = autoByRulePeriodLocal.get(`${recurringRuleId}|${d.getFullYear()}-${d.getMonth()}`);
+        if (found) { replacesAutoId = found.id; recurringExpectedAmount = found.amount; }
+        const rec = recurrings.find((x: any) => x.id === recurringRuleId);
+        if (rec && recurringExpectedAmount === null) recurringExpectedAmount = Number(rec.amount);
+      }
       return {
         ...r,
         rowId: i,
@@ -109,7 +139,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         macroGroup,
         categoryId: match?.rule.category_id || null,
         subcategoryId: match?.rule.subcategory_id || null,
-        recurringRuleId: (match?.rule as any)?.recurring_rule_id || null,
+        recurringRuleId,
+        replacesAutoId,
+        recurringExpectedAmount,
       };
     });
 
@@ -187,8 +219,18 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     const ignored = rows.filter(r => r.ignore).length;
     const duplicates = rows.filter(r => r.isDuplicate || r.isExisting).length;
 
+    const replacedAutoIds = new Set<string>();
+    const updatedRuleIds = new Set<string>();
+
     for (let i = 0; i < toImport.length; i++) {
       const row = toImport[i];
+
+      // Replace auto-generated transaction (only first occurrence per period)
+      if (row.recurringRuleId && row.replacesAutoId && !replacedAutoIds.has(row.replacesAutoId)) {
+        await supabase.from('transactions').delete().eq('id', row.replacesAutoId);
+        replacedAutoIds.add(row.replacesAutoId);
+      }
+
       const { error } = await supabase.from('transactions').insert({
         user_id: userId,
         date: row.date,
@@ -202,9 +244,21 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         import_id: importRecord?.id,
         is_recurring: !!row.recurringRuleId,
         recurring_rule_id: row.recurringRuleId,
+        auto_generated: false,
       });
       if (error) errors++; else {
         imported++;
+
+        // Update recurring rule amount if it differs (first occurrence per rule only)
+        if (row.recurringRuleId && row.recurringExpectedAmount !== null && !updatedRuleIds.has(row.recurringRuleId)) {
+          if (Math.abs(row.recurringExpectedAmount - row.amount) > 0.005) {
+            const rec = recurrings.find((x: any) => x.id === row.recurringRuleId);
+            await supabase.from('recurring_rules').update({ amount: row.amount }).eq('id', row.recurringRuleId);
+            toast.info(`Valor da recorrência «${rec?.name || ''}» atualizado: ${formatCurrency(row.recurringExpectedAmount)} → ${formatCurrency(row.amount)}`);
+            updatedRuleIds.add(row.recurringRuleId);
+          }
+        }
+
         if ((row.categoryId || row.recurringRuleId) && !row.matchedRuleId) {
           await learnCategorizeRule(userId, row, row.categoryId, row.subcategoryId, row.macroGroup, row.recurringRuleId);
         }
@@ -346,7 +400,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">{row.date}</TableCell>
                     <TableCell className="text-xs max-w-[220px]">
                       <div className="truncate" title={row.description}>{row.description}</div>
-                      <div className="flex gap-1 mt-0.5">
+                      <div className="flex flex-wrap gap-1 mt-0.5">
                         {row.matchedRuleId && !row.matchedIgnore && (
                           <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
                             {row.matchedAuto ? 'auto' : 'regra'}
@@ -354,6 +408,14 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         )}
                         {(row.isDuplicate || row.isExisting) && (
                           <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">duplicado</Badge>
+                        )}
+                        {row.replacesAutoId && (
+                          <Badge className="text-[10px] px-1 py-0 h-4 bg-primary/10 text-primary border-0">substitui auto-gerada</Badge>
+                        )}
+                        {row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - row.amount) > 0.005 && (
+                          <Badge className="text-[10px] px-1 py-0 h-4 bg-warning-muted text-warning border-0">
+                            valor difere: {formatCurrency(row.recurringExpectedAmount)} → {formatCurrency(row.amount)}
+                          </Badge>
                         )}
                       </div>
                     </TableCell>
@@ -391,15 +453,19 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         value={row.recurringRuleId || '__none__'}
                         onValueChange={(v) => {
                           if (v === '__none__') {
-                            updateRow(row.rowId, { recurringRuleId: null });
+                            updateRow(row.rowId, { recurringRuleId: null, replacesAutoId: null, recurringExpectedAmount: null });
                           } else {
                             const rec = recurrings.find((x: any) => x.id === v);
                             if (rec) {
+                              const d = new Date(row.date);
+                              const found = autoByRulePeriod.get(`${v}|${d.getFullYear()}-${d.getMonth()}`);
                               updateRow(row.rowId, {
                                 recurringRuleId: v,
                                 categoryId: rec.category_id,
                                 subcategoryId: rec.subcategory_id,
                                 macroGroup: rec.macro_group,
+                                replacesAutoId: found?.id || null,
+                                recurringExpectedAmount: found ? found.amount : Number(rec.amount),
                               });
                             }
                           }
