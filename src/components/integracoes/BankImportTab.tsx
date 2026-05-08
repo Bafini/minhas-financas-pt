@@ -372,7 +372,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
           updatedRuleIds.add(row.recurringRuleId);
         }
 
-        if ((row.categoryId || row.recurringRuleId) && !row.matchedRuleId) {
+        const matchedIsExact = row.matchedRuleField === 'description+amount';
+        const shouldLearn = (row.categoryId || row.recurringRuleId) && (!row.matchedRuleId || (row.matchExactAmount && !matchedIsExact));
+        if (shouldLearn) {
           await learnCategorizeRule(userId, row, row.categoryId, row.subcategoryId, row.macroGroup, row.recurringRuleId, row.matchExactAmount);
         }
       }
