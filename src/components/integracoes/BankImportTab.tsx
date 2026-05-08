@@ -172,6 +172,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         recurringRuleId,
         replacesAutoId,
         recurringExpectedAmount,
+        divergenceResolution: diverges ? defaultDivergenceResolution : null,
       };
     });
 
