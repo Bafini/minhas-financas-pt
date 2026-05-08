@@ -60,7 +60,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
   const [rules, setRules] = useState<ImportRule[]>([]);
   const [importProgress, setImportProgress] = useState(0);
   const [importTotal, setImportTotal] = useState(0);
-  const [result, setResult] = useState<{ imported: number; ignored: number; duplicates: number; errors: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number; ignored: number; duplicates: number; errors: number; skippedByDate: number } | null>(null);
   const [ignoreDialog, setIgnoreDialog] = useState<{ open: boolean; rowId: number | null; pattern: string }>({ open: false, rowId: null, pattern: '' });
 
   const [recurrings, setRecurrings] = useState<any[]>([]);
