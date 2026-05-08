@@ -109,7 +109,7 @@ export async function learnCategorizeRule(
   const baseDesc = normalizeDescription(row.description);
   if (!baseDesc || baseDesc.length < 3) return;
 
-  const pattern = matchExactAmount ? `${baseDesc}|=${row.amount.toFixed(2)}` : baseDesc;
+  const pattern = matchExactAmount ? `${baseDesc}|=${Math.abs(row.amount).toFixed(2)}` : baseDesc;
   const matchField = matchExactAmount ? 'description+amount' : 'description';
   const priority = matchExactAmount ? 150 : 100;
 
