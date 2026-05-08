@@ -16,14 +16,19 @@ interface Props { userId: string }
 const ImportRulesTab: React.FC<Props> = ({ userId }) => {
   const [rules, setRules] = useState<ImportRule[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [recurrings, setRecurrings] = useState<any[]>([]);
   const [filterBank, setFilterBank] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
   const reload = async () => {
     setLoading(true);
-    const [r, c] = await Promise.all([fetchImportRules(userId), fetchCategories(userId)]);
-    setRules(r); setCategories(c || []);
+    const [r, c, rec] = await Promise.all([
+      fetchImportRules(userId),
+      fetchCategories(userId),
+      fetchRecurringRules(userId).catch(() => []),
+    ]);
+    setRules(r); setCategories(c || []); setRecurrings(rec || []);
     setLoading(false);
   };
   useEffect(() => { reload(); }, [userId]);
