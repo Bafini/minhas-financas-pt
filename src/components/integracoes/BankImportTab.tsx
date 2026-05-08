@@ -200,11 +200,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         bank_source: row.bankSource,
         external_ref: row.externalRef,
         import_id: importRecord?.id,
+        is_recurring: !!row.recurringRuleId,
+        recurring_rule_id: row.recurringRuleId,
       });
       if (error) errors++; else {
         imported++;
-        if (row.categoryId && !row.matchedRuleId) {
-          await learnCategorizeRule(userId, row, row.categoryId, row.subcategoryId, row.macroGroup);
+        if ((row.categoryId || row.recurringRuleId) && !row.matchedRuleId) {
+          await learnCategorizeRule(userId, row, row.categoryId, row.subcategoryId, row.macroGroup, row.recurringRuleId);
         }
       }
       setImportProgress(i + 1);
