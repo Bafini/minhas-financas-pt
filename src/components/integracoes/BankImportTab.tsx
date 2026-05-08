@@ -24,12 +24,23 @@ import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { format } from 'date-fns';
 
+interface PossibleDuplicate {
+  id: string;
+  date: string;
+  amount: number;
+  notes: string | null;
+  categoryName: string | null;
+  bankSource: string | null;
+  daysDiff: number;
+}
+
 interface PreviewRow extends ParsedBankRow {
   rowId: number;
   ignore: boolean;
   isDuplicate: boolean;
   isExisting: boolean;
   matchedRuleId: string | null;
+  matchedRuleField: string | null;
   matchedAuto: boolean;
   matchedIgnore: boolean;
   macroGroup: MacroGroup;
@@ -40,6 +51,8 @@ interface PreviewRow extends ParsedBankRow {
   recurringExpectedAmount: number | null;
   divergenceResolution: 'file' | 'rule' | null;
   matchExactAmount: boolean;
+  possibleDuplicateOf: PossibleDuplicate | null;
+  possibleDuplicateDismissed: boolean;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [

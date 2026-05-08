@@ -1,59 +1,62 @@
-## Melhorias na Importação Bancária
+## Melhorias na Importação Bancária — Valor Exacto + Detecção de Duplicados
 
-### 1. Filtro de data inicial das linhas a importar
+### 1. Tornar "valor exacto" sempre acessível na importação
 
-No passo de **preview** do `BankImportTab.tsx`, adicionar um controlo de data com duas opções:
+**Problema:** O checkbox "valor exacto" só aparece nas linhas em que há categoria **e** ainda não existe regra aprendida (`row.categoryId && !row.matchedRuleId`). Quando uma linha já é categorizada automaticamente por uma regra anterior, o checkbox desaparece — pelo que nunca se consegue converter as regras existentes em "valor exacto".
 
-- **A partir da última atualização** (default) — usa `profiles.movements_updated_until` do perfil ativo (+1 dia). Se for `null`, comporta-se como "todas".
-- **A partir de data específica** — DatePicker (DD/MM/AAAA) que o utilizador escolhe.
-- **Todas as linhas** — sem filtro.
+**Solução em `BankImportTab.tsx`:**
 
-Linhas com `parsedDate < dataCorte` ficam visíveis na tabela mas com badge **"Antes do corte"** e marcadas como `skipped` (não contam para `validCount`, não são importadas). Resumo no topo passa a mostrar `X ignoradas por data`.
+- Mostrar o checkbox "valor exacto" sempre que houver `categoryId` (remover a condição `!row.matchedRuleId`).
+- Quando a linha já tem `matchedRuleId` e o utilizador altera o checkbox:
+  - Se passa para `true`: cria/atualiza uma regra `description+amount` específica para este valor (priority 150). A regra antiga genérica não é apagada — passa a ser fallback para outros valores.
+  - Se passa para `false`: nada na altura da importação (só voltará a aprender como genérica se o utilizador quiser).
+- Alargar a inicialização: `matchExactAmount` inicial passa a ser `match.rule.match_field === 'description+amount'` (já está) — garantir que reflecte a regra activa.
+- Adicionar tooltip claro: "Esta regra só aplica quando o valor é exactamente X €. Útil para distinguir vários movimentos com a mesma descrição (ex: 4 seguros diferentes na mesma categoria)."
 
-Após import bem-sucedido, atualiza `profiles.movements_updated_until` para a maior data importada (se for posterior à atual).
+### 2. Tornar visível e editável o "valor exacto" na lista de regras
 
-```text
-[Cortar a partir de:]  ( ) Última atualização (15/04/2026)
-                       (•) Data específica  [01/05/2026 ▼]
-                       ( ) Importar todas
-```
+**Solução em `ImportRulesTab.tsx`:**
 
-### 2. Escolha do valor quando diverge da recorrente
+- Adicionar coluna **"Match"** entre "Padrão" e "Categoria" com badge:
+  - `descrição` — match só por descrição
+  - `descrição + sinal` — quando `description+sign`
+  - `desc + valor X €` — quando `description+amount` (mostra o valor extraído do pattern `desc|=12.99`)
+- Tornar o pattern mostrado mais legível: separar `desc` de `|=valor` para não parecer ruído.
+- Adicionar botão de acção rápida na linha (ícone) para alternar entre "match por descrição" ↔ "match por descrição + valor exacto" sem ter de apagar e recriar:
+  - Atualiza `match_field`, `match_pattern` (adiciona/remove sufixo `|=X.XX`), `priority` (100 ↔ 150).
+  - Quando se converte para "valor exacto", precisa de saber qual o valor — mostra mini-dialog a perguntar.
 
-Quando uma linha está associada a uma `recurring_rule` e `Math.abs(file - rule) > 0.005`:
+### 3. Detecção de duplicados por data+valor no preview
 
-- Substituir o badge informativo atual por um pequeno **toggle por linha** com duas opções:
-  - **Usar valor do ficheiro** (default) → comportamento atual: insere com valor do ficheiro e atualiza `recurring_rules.amount`.
-  - **Manter valor da recorrente** → insere a transação com o valor da regra (não do ficheiro), substitui a auto-gerada, **não** atualiza `recurring_rules.amount`. A diferença (file − rule) fica registada nas `notes` da transação como `"Diferença vs ficheiro: +2,30 €"` para rastreabilidade (caso típico: parte em dinheiro + parte por transferência).
+**Problema actual:** A detecção de duplicados é estrita: `date|amount|bank_source|external_ref`. Se o mesmo movimento for importado de outro banco (ex: já registado manualmente, ou por outro extrato), passa despercebido.
 
-```text
-Linha: NETFLIX 12,99 €  → recorrente "Netflix" (esperado 15,99 €)
-   Valor difere: 12,99 → 15,99
-   ( ) Usar 12,99 (ficheiro) e atualizar recorrente
-   (•) Manter 15,99 (recorrente)  [diferença ficará nas notas]
-```
+**Solução em `BankImportTab.tsx`:**
 
-A escolha por linha sobrepõe-se ao default. Adicionar também um **toggle global** no topo do preview ("Quando valor diverge da recorrente: usar ficheiro / manter recorrente") que define o default para todas as linhas divergentes.
+- Carregar as transacções existentes já no parse (`handleParse`) com janela alargada — em vez de apenas `external_ref` exacto, comparar também por `date + amount` aproximado (mesma data e mesmo valor independentemente de banco/ref).
+- Adicionar novo campo a `PreviewRow`: `possibleDuplicateOf: { id: string; date: string; amount: number; notes: string | null; category: string | null } | null`.
+- Lógica de detecção em duas camadas:
+  1. **Duplicado certo** (já existente): match estrito em `date|amount|bank_source|external_ref` → marca `isExisting=true` (comportamento actual; bloqueia import por defeito).
+  2. **Possível duplicado** (sugestão): existe transacção com `date===row.date` e `Math.abs(amount - row.amount) < 0.005` mas com `external_ref` diferente ou nulo → marca `possibleDuplicateOf` mas **não** bloqueia o import. Apresenta badge "possível duplicado" + ícone clicável.
+- Ampliar a janela: também sinalizar movimentos onde `Math.abs(date_diff) <= 3 dias` E `mesmo amount` — útil quando a data de valor difere do movimento.
+- Por linha: badge laranja `possível duplicado` + botão `i` que abre Popover com detalhes da transacção candidata (data, valor, notas, categoria) e duas acções:
+  - **"É o mesmo — ignorar"** → marca `ignore=true` na linha.
+  - **"São diferentes — importar"** → limpa o aviso (`possibleDuplicateOf=null`).
+- Adicionar contador no resumo do topo: badge `X possíveis duplicados`.
+- Adicionar toggle global "Mostrar possíveis duplicados" (ON por defeito) caso o utilizador queira esconder.
 
 ### Detalhes técnicos
 
-**Ficheiro a editar:** `src/components/integracoes/BankImportTab.tsx`
+**Ficheiros a editar:**
+- `src/components/integracoes/BankImportTab.tsx`
+- `src/components/integracoes/ImportRulesTab.tsx`
 
-Novos campos em `PreviewRow`:
-- `skippedByDate: boolean`
-- `divergenceResolution: 'file' | 'rule' | null` (null quando não diverge)
+**Sem alterações de schema.** Tudo usa colunas existentes em `transactions` e `import_rules`.
 
-Novo estado no componente:
-- `cutoffMode: 'last' | 'custom' | 'all'`
-- `customCutoffDate: Date | null`
-- `lastUpdatedDate: string | null` (carregado de `profiles.movements_updated_until` no mount)
-- `defaultDivergenceResolution: 'file' | 'rule'`
+**Query do `handleParse`:** já carrega via `fetchAllRows` todas as transacções do utilizador (`date, amount, external_ref, notes, bank_source`). Adicionar `id, category_id` ao select e construir um segundo índice `Map<string, ExistingTx[]>` indexado por `date|amount` para o look-up de "possíveis duplicados".
 
-Lógica de `handleImport`:
-- Filtra `toImport` excluindo `skippedByDate`.
-- Para cada linha com `recurringRuleId` e divergência:
-  - Se `resolution === 'file'`: insere com `row.amount`, **update** `recurring_rules.amount` (já implementado).
-  - Se `resolution === 'rule'`: insere com `row.recurringExpectedAmount`, append à coluna `notes` o texto `"Diferença vs ficheiro: ±X,XX €"`, **NÃO** atualiza a regra. Substituição da auto-gerada mantém-se.
-- Após o loop, calcula `maxImportedDate` e faz `update profiles.movements_updated_until` se aplicável.
-
-Sem alterações de schema — usa colunas existentes (`profiles.movements_updated_until`, `transactions.notes`, `transactions.amount`, `recurring_rules.amount`).
+```text
+Linha 12:  CGD  10/05/2026  -45,00 €  "SEGURO XPTO"
+   [auto] [valor exacto ☐]  [possível duplicado i]
+                              └─> Já existe: 10/05/2026 -45,00€ "Pagamento seguro" (Seguros)
+                                 [É o mesmo — ignorar]  [São diferentes — importar]
+```
