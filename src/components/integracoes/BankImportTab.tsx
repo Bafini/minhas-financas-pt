@@ -135,8 +135,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     const existingByDateAmount = new Map<string, any[]>();
     (existing || []).forEach((e: any) => {
       const ref = e.external_ref || e.notes || '';
-      existingSet.add(`${e.date}|${e.amount}|${e.bank_source || 'manual'}|${ref}`);
-      const k = `${e.date}|${Number(e.amount).toFixed(2)}`;
+      const absAmt = Math.abs(Number(e.amount)).toFixed(2);
+      existingSet.add(`${e.date}|${absAmt}|${e.bank_source || 'manual'}|${ref}`);
+      const k = `${e.date}|${absAmt}`;
       const arr = existingByDateAmount.get(k) || [];
       arr.push(e);
       existingByDateAmount.set(k, arr);
@@ -145,7 +146,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     // Also index by amount alone, for ±3 days window
     const existingByAmount = new Map<string, any[]>();
     (existing || []).forEach((e: any) => {
-      const k = Number(e.amount).toFixed(2);
+      const k = Math.abs(Number(e.amount)).toFixed(2);
       const arr = existingByAmount.get(k) || [];
       arr.push(e);
       existingByAmount.set(k, arr);
