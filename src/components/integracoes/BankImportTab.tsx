@@ -39,6 +39,7 @@ interface PreviewRow extends ParsedBankRow {
   replacesAutoId: string | null;
   recurringExpectedAmount: number | null;
   divergenceResolution: 'file' | 'rule' | null;
+  matchExactAmount: boolean;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
@@ -173,6 +174,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         replacesAutoId,
         recurringExpectedAmount,
         divergenceResolution: diverges ? defaultDivergenceResolution : null,
+        matchExactAmount: match?.rule.match_field === 'description+amount',
       };
     });
 
@@ -302,7 +304,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         }
 
         if ((row.categoryId || row.recurringRuleId) && !row.matchedRuleId) {
-          await learnCategorizeRule(userId, row, row.categoryId, row.subcategoryId, row.macroGroup, row.recurringRuleId);
+          await learnCategorizeRule(userId, row, row.categoryId, row.subcategoryId, row.macroGroup, row.recurringRuleId, row.matchExactAmount);
         }
       }
       setImportProgress(i + 1);
@@ -547,6 +549,16 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                               </SelectContent>
                             </Select>
                           </div>
+                        )}
+                        {row.categoryId && !row.matchedRuleId && (
+                          <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer" title="Ao aprender esta regra, exigir também o valor exacto desta linha">
+                            <Checkbox
+                              checked={row.matchExactAmount}
+                              onCheckedChange={(v) => updateRow(row.rowId, { matchExactAmount: !!v })}
+                              className="h-3 w-3"
+                            />
+                            valor exacto
+                          </label>
                         )}
                       </div>
                     </TableCell>
