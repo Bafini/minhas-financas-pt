@@ -416,12 +416,74 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
   return (
     <>
+      <Card className="glass-surface">
+        <CardContent className="space-y-4 py-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Importar a partir de</Label>
+              <RadioGroup value={cutoffMode} onValueChange={(v) => setCutoffMode(v as any)} className="gap-2">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="last" id="cut-last" />
+                  <Label htmlFor="cut-last" className="text-sm font-normal cursor-pointer">
+                    Última atualização {lastUpdatedDate ? `(${formatDate(lastUpdatedDate, 'DD/MM/YYYY')})` : '(sem registo)'}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="custom" id="cut-custom" />
+                  <Label htmlFor="cut-custom" className="text-sm font-normal cursor-pointer">Data específica</Label>
+                  {cutoffMode === 'custom' && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-7 text-xs ml-2">
+                          <CalendarIcon className="mr-1 h-3 w-3" />
+                          {customCutoffDate ? format(customCutoffDate, 'dd/MM/yyyy') : 'Escolher'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={customCutoffDate || undefined} onSelect={(d) => setCustomCutoffDate(d || null)} initialFocus className={cn('p-3 pointer-events-auto')} />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="all" id="cut-all" />
+                  <Label htmlFor="cut-all" className="text-sm font-normal cursor-pointer">Importar todas</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Quando valor diverge da recorrente (default)</Label>
+              <RadioGroup
+                value={defaultDivergenceResolution}
+                onValueChange={(v) => {
+                  const next = v as 'file' | 'rule';
+                  setDefaultDivergenceResolution(next);
+                  setRows(prev => prev.map(r => r.divergenceResolution !== null ? { ...r, divergenceResolution: next } : r));
+                }}
+                className="gap-2"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="file" id="div-file" />
+                  <Label htmlFor="div-file" className="text-sm font-normal cursor-pointer">Usar valor do ficheiro (atualiza recorrente)</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="rule" id="div-rule" />
+                  <Label htmlFor="div-rule" className="text-sm font-normal cursor-pointer">Manter valor da recorrente (regista diferença)</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary">{counts.total} linhas</Badge>
         <Badge className="bg-income-muted text-income border-0"><Sparkles className="mr-1 h-3 w-3" />{counts.auto} categorizadas</Badge>
         {counts.pending > 0 && <Badge variant="outline">{counts.pending} por categorizar</Badge>}
         {counts.ignored > 0 && <Badge className="bg-muted text-muted-foreground border-0"><Ban className="mr-1 h-3 w-3" />{counts.ignored} ignoradas</Badge>}
         {counts.duplicates > 0 && <Badge className="bg-warning-muted text-warning border-0"><AlertTriangle className="mr-1 h-3 w-3" />{counts.duplicates} duplicadas</Badge>}
+        {counts.skippedByDate > 0 && <Badge className="bg-muted text-muted-foreground border-0">{counts.skippedByDate} antes do corte</Badge>}
       </div>
 
       <Card className="glass-surface overflow-hidden">
