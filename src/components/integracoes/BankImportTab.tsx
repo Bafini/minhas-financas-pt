@@ -39,6 +39,7 @@ interface PreviewRow extends ParsedBankRow {
   replacesAutoId: string | null;
   recurringExpectedAmount: number | null;
   divergenceResolution: 'file' | 'rule' | null;
+  matchExactAmount: boolean;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
