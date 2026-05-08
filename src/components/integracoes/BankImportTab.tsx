@@ -667,8 +667,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className={cn('text-right tabular-nums text-xs', row.amount >= 0 ? 'text-income' : 'text-expense')}>
-                      {formatCurrency(row.amount)}
+                    <TableCell className={cn('text-right tabular-nums text-xs', row.macroGroup === 'Rendimentos' ? 'text-income' : 'text-expense')}>
+                      {formatCurrency(Math.abs(row.amount))}
                     </TableCell>
                     <TableCell>
                       <Select value={row.macroGroup} onValueChange={(v) => updateRow(row.rowId, { macroGroup: v as MacroGroup, categoryId: null, subcategoryId: null })}>
