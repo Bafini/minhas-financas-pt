@@ -103,10 +103,15 @@ export async function learnCategorizeRule(
   categoryId: string | null,
   subcategoryId: string | null,
   macroGroup: MacroGroup | null,
-  recurringRuleId: string | null = null
+  recurringRuleId: string | null = null,
+  matchExactAmount: boolean = false
 ): Promise<void> {
-  const pattern = normalizeDescription(row.description);
-  if (!pattern || pattern.length < 3) return;
+  const baseDesc = normalizeDescription(row.description);
+  if (!baseDesc || baseDesc.length < 3) return;
+
+  const pattern = matchExactAmount ? `${baseDesc}|=${row.amount.toFixed(2)}` : baseDesc;
+  const matchField = matchExactAmount ? 'description+amount' : 'description';
+  const priority = matchExactAmount ? 150 : 100;
 
   const { data: existing } = await supabase
     .from('import_rules')
@@ -114,6 +119,7 @@ export async function learnCategorizeRule(
     .eq('user_id', userId)
     .eq('rule_type', 'categorize')
     .eq('match_pattern', pattern)
+    .eq('match_field', matchField)
     .eq('bank_source', row.bankSource)
     .maybeSingle();
 
@@ -131,13 +137,13 @@ export async function learnCategorizeRule(
       user_id: userId,
       bank_source: row.bankSource,
       rule_type: 'categorize',
-      match_field: 'description',
+      match_field: matchField,
       match_pattern: pattern,
       category_id: categoryId,
       subcategory_id: subcategoryId,
       macro_group: macroGroup,
       recurring_rule_id: recurringRuleId,
-      priority: 100,
+      priority,
       auto_learned: true,
       hit_count: 1,
       last_used_at: new Date().toISOString(),
