@@ -174,6 +174,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         replacesAutoId,
         recurringExpectedAmount,
         divergenceResolution: diverges ? defaultDivergenceResolution : null,
+        matchExactAmount: match?.rule.match_field === 'description+amount',
       };
     });
 
