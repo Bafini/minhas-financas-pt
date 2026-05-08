@@ -57,13 +57,28 @@ export function findMatchingRule(
   for (const rule of sorted) {
     const pattern = rule.match_pattern;
     if (!pattern) continue;
-    if (!normRow.includes(pattern)) continue;
+
+    if (rule.match_field === 'description+amount') {
+      // Pattern format: "<normDesc>|=<amount>"
+      const idx = pattern.lastIndexOf('|=');
+      if (idx < 0) continue;
+      const descPart = pattern.slice(0, idx);
+      const amountPart = parseFloat(pattern.slice(idx + 2));
+      if (!descPart || isNaN(amountPart)) continue;
+      if (!normRow.includes(descPart)) continue;
+      if (Math.abs(row.amount - amountPart) > 0.005) continue;
+      return { rule };
+    }
 
     if (rule.match_field === 'description+sign') {
-      const ruleSign = rule.match_pattern.endsWith('|+') ? '+' : rule.match_pattern.endsWith('|-') ? '-' : null;
+      const ruleSign = pattern.endsWith('|+') ? '+' : pattern.endsWith('|-') ? '-' : null;
+      const descPart = ruleSign ? pattern.slice(0, -2) : pattern;
+      if (!normRow.includes(descPart)) continue;
       if (ruleSign && ruleSign !== sign) continue;
+      return { rule };
     }
-    if (rule.match_field === 'description+amount' && rule.priority < 0) continue;
+
+    if (!normRow.includes(pattern)) continue;
     return { rule };
   }
   return null;
