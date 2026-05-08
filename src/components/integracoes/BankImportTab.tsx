@@ -16,7 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Upload, FileText, CheckCircle2, Loader2, AlertTriangle, Ban, Sparkles, Wand2, CalendarIcon } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, Loader2, AlertTriangle, Ban, Sparkles, Wand2, CalendarIcon, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -24,12 +24,23 @@ import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { format } from 'date-fns';
 
+interface PossibleDuplicate {
+  id: string;
+  date: string;
+  amount: number;
+  notes: string | null;
+  categoryName: string | null;
+  bankSource: string | null;
+  daysDiff: number;
+}
+
 interface PreviewRow extends ParsedBankRow {
   rowId: number;
   ignore: boolean;
   isDuplicate: boolean;
   isExisting: boolean;
   matchedRuleId: string | null;
+  matchedRuleField: string | null;
   matchedAuto: boolean;
   matchedIgnore: boolean;
   macroGroup: MacroGroup;
@@ -40,6 +51,8 @@ interface PreviewRow extends ParsedBankRow {
   recurringExpectedAmount: number | null;
   divergenceResolution: 'file' | 'rule' | null;
   matchExactAmount: boolean;
+  possibleDuplicateOf: PossibleDuplicate | null;
+  possibleDuplicateDismissed: boolean;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
@@ -114,15 +127,32 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
     const existing = await fetchAllRows((sb) =>
       sb.from('transactions')
-        .select('date, amount, external_ref, notes, bank_source')
+        .select('id, date, amount, external_ref, notes, bank_source, category_id')
         .eq('user_id', userId)
         .order('id')
     );
     const existingSet = new Set<string>();
+    const existingByDateAmount = new Map<string, any[]>();
     (existing || []).forEach((e: any) => {
       const ref = e.external_ref || e.notes || '';
       existingSet.add(`${e.date}|${e.amount}|${e.bank_source || 'manual'}|${ref}`);
+      const k = `${e.date}|${Number(e.amount).toFixed(2)}`;
+      const arr = existingByDateAmount.get(k) || [];
+      arr.push(e);
+      existingByDateAmount.set(k, arr);
     });
+
+    // Also index by amount alone, for ±3 days window
+    const existingByAmount = new Map<string, any[]>();
+    (existing || []).forEach((e: any) => {
+      const k = Number(e.amount).toFixed(2);
+      const arr = existingByAmount.get(k) || [];
+      arr.push(e);
+      existingByAmount.set(k, arr);
+    });
+
+    const catNameById = new Map<string, string>();
+    (categories || []).forEach((c: any) => catNameById.set(c.id, c.name));
 
     // Fetch auto-generated recurring transactions to detect replacements
     const autoGen = await fetchAllRows((sb) =>
@@ -141,6 +171,41 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     });
     setAutoByRulePeriod(autoByRulePeriodLocal);
 
+    const findPossibleDuplicate = (r: ParsedBankRow): PossibleDuplicate | null => {
+      const amountKey = r.amount.toFixed(2);
+      const refKey = r.externalRef || '';
+      const strictKey = `${r.date}|${r.amount}|${r.bankSource}|${refKey}`;
+      // Same date + amount, different ref/bank
+      const sameDay = existingByDateAmount.get(`${r.date}|${amountKey}`) || [];
+      for (const e of sameDay) {
+        const eRef = e.external_ref || e.notes || '';
+        const eKey = `${e.date}|${e.amount}|${e.bank_source || 'manual'}|${eRef}`;
+        if (eKey === strictKey) continue;
+        return {
+          id: e.id, date: e.date, amount: Number(e.amount),
+          notes: e.notes, bankSource: e.bank_source,
+          categoryName: e.category_id ? (catNameById.get(e.category_id) || null) : null,
+          daysDiff: 0,
+        };
+      }
+      // ±3 days, same amount
+      const sameAmount = existingByAmount.get(amountKey) || [];
+      const rowDate = new Date(r.date);
+      for (const e of sameAmount) {
+        const eDate = new Date(e.date);
+        const diffDays = Math.round((rowDate.getTime() - eDate.getTime()) / 86400000);
+        if (diffDays === 0) continue;
+        if (Math.abs(diffDays) > 3) continue;
+        return {
+          id: e.id, date: e.date, amount: Number(e.amount),
+          notes: e.notes, bankSource: e.bank_source,
+          categoryName: e.category_id ? (catNameById.get(e.category_id) || null) : null,
+          daysDiff: diffDays,
+        };
+      }
+      return null;
+    };
+
     const preview: PreviewRow[] = parsed.rows.map((r, i) => {
       const match = findMatchingRule(r, rules);
       const isExisting = existingSet.has(`${r.date}|${r.amount}|${r.bankSource}|${r.externalRef}`);
@@ -158,6 +223,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         if (rec && recurringExpectedAmount === null) recurringExpectedAmount = Number(rec.amount);
       }
       const diverges = recurringRuleId && recurringExpectedAmount !== null && Math.abs(recurringExpectedAmount - r.amount) > 0.005;
+      const possibleDuplicateOf = isExisting ? null : findPossibleDuplicate(r);
       return {
         ...r,
         rowId: i,
@@ -165,6 +231,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         isDuplicate: false,
         isExisting,
         matchedRuleId: match?.rule.id || null,
+        matchedRuleField: match?.rule.match_field || null,
         matchedAuto: match?.rule.auto_learned || false,
         matchedIgnore: match?.rule.rule_type === 'ignore' || false,
         macroGroup,
@@ -175,6 +242,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         recurringExpectedAmount,
         divergenceResolution: diverges ? defaultDivergenceResolution : null,
         matchExactAmount: match?.rule.match_field === 'description+amount',
+        possibleDuplicateOf,
+        possibleDuplicateDismissed: false,
       };
     });
 
@@ -303,7 +372,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
           updatedRuleIds.add(row.recurringRuleId);
         }
 
-        if ((row.categoryId || row.recurringRuleId) && !row.matchedRuleId) {
+        const matchedIsExact = row.matchedRuleField === 'description+amount';
+        const shouldLearn = (row.categoryId || row.recurringRuleId) && (!row.matchedRuleId || (row.matchExactAmount && !matchedIsExact));
+        if (shouldLearn) {
           await learnCategorizeRule(userId, row, row.categoryId, row.subcategoryId, row.macroGroup, row.recurringRuleId, row.matchExactAmount);
         }
       }
@@ -337,6 +408,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       pending: rows.filter(r => !r.ignore && !r.categoryId && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date)).length,
       ignored: rows.filter(r => r.ignore).length,
       duplicates: rows.filter(r => r.isDuplicate || r.isExisting).length,
+      possibleDuplicates: rows.filter(r => r.possibleDuplicateOf && !r.possibleDuplicateDismissed && !r.ignore && !r.isExisting).length,
       skippedByDate,
       importable: rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date)).length,
     };
@@ -485,6 +557,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         {counts.pending > 0 && <Badge variant="outline">{counts.pending} por categorizar</Badge>}
         {counts.ignored > 0 && <Badge className="bg-muted text-muted-foreground border-0"><Ban className="mr-1 h-3 w-3" />{counts.ignored} ignoradas</Badge>}
         {counts.duplicates > 0 && <Badge className="bg-warning-muted text-warning border-0"><AlertTriangle className="mr-1 h-3 w-3" />{counts.duplicates} duplicadas</Badge>}
+        {counts.possibleDuplicates > 0 && <Badge className="bg-warning-muted text-warning border-0"><AlertTriangle className="mr-1 h-3 w-3" />{counts.possibleDuplicates} possíveis duplicados</Badge>}
         {counts.skippedByDate > 0 && <Badge className="bg-muted text-muted-foreground border-0">{counts.skippedByDate} antes do corte</Badge>}
       </div>
 
@@ -550,8 +623,11 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                             </Select>
                           </div>
                         )}
-                        {row.categoryId && !row.matchedRuleId && (
-                          <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer" title="Ao aprender esta regra, exigir também o valor exacto desta linha">
+                        {row.categoryId && (
+                          <label
+                            className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer"
+                            title={`Esta regra só aplica quando o valor é exactamente ${formatCurrency(row.amount)}. Útil para distinguir movimentos com a mesma descrição mas valores diferentes (ex: vários seguros).`}
+                          >
                             <Checkbox
                               checked={row.matchExactAmount}
                               onCheckedChange={(v) => updateRow(row.rowId, { matchExactAmount: !!v })}
@@ -559,6 +635,33 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                             />
                             valor exacto
                           </label>
+                        )}
+                        {row.possibleDuplicateOf && !row.possibleDuplicateDismissed && !row.isExisting && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Badge className="text-[10px] px-1 py-0 h-4 bg-warning-muted text-warning border-0 cursor-pointer">
+                                <Info className="mr-0.5 h-2.5 w-2.5" />possível duplicado
+                              </Badge>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 text-xs space-y-2" align="start">
+                              <p className="font-medium">Já existe um movimento parecido:</p>
+                              <div className="space-y-0.5 text-muted-foreground">
+                                <div><span className="text-foreground tabular-nums">{formatDate(row.possibleDuplicateOf.date, 'DD/MM/YYYY')}</span> · <span className="text-foreground tabular-nums">{formatCurrency(row.possibleDuplicateOf.amount)}</span></div>
+                                {row.possibleDuplicateOf.notes && <div className="truncate">«{row.possibleDuplicateOf.notes}»</div>}
+                                <div>
+                                  {row.possibleDuplicateOf.categoryName && <span>Categoria: {row.possibleDuplicateOf.categoryName} · </span>}
+                                  {row.possibleDuplicateOf.bankSource && <span>Origem: {row.possibleDuplicateOf.bankSource}</span>}
+                                </div>
+                                {row.possibleDuplicateOf.daysDiff !== 0 && (
+                                  <div>Diferença: {Math.abs(row.possibleDuplicateOf.daysDiff)} dia(s)</div>
+                                )}
+                              </div>
+                              <div className="flex gap-2 pt-1">
+                                <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { ignore: true, possibleDuplicateDismissed: true })}>É o mesmo — ignorar</Button>
+                                <Button size="sm" variant="ghost" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { possibleDuplicateDismissed: true })}>São diferentes</Button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         )}
                       </div>
                     </TableCell>
