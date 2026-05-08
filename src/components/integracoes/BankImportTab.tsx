@@ -156,6 +156,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         const rec = recurrings.find((x: any) => x.id === recurringRuleId);
         if (rec && recurringExpectedAmount === null) recurringExpectedAmount = Number(rec.amount);
       }
+      const diverges = recurringRuleId && recurringExpectedAmount !== null && Math.abs(recurringExpectedAmount - r.amount) > 0.005;
       return {
         ...r,
         rowId: i,
