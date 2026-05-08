@@ -330,12 +330,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     for (let i = 0; i < toImport.length; i++) {
       const row = toImport[i];
 
-      const diverges = row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - row.amount) > 0.005;
+      const absAmount = Math.abs(row.amount);
+      const diverges = row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - absAmount) > 0.005;
       const useRuleAmount = diverges && row.divergenceResolution === 'rule';
-      const finalAmount = useRuleAmount ? (row.recurringExpectedAmount as number) : row.amount;
+      const finalAmount = useRuleAmount ? (row.recurringExpectedAmount as number) : absAmount;
       let finalNotes = row.description;
       if (useRuleAmount) {
-        const diff = row.amount - (row.recurringExpectedAmount as number);
+        const diff = absAmount - (row.recurringExpectedAmount as number);
         const sign = diff >= 0 ? '+' : '';
         finalNotes = `${row.description} | Diferença vs ficheiro: ${sign}${formatCurrency(diff)}`;
       }
