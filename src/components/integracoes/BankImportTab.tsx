@@ -623,8 +623,11 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                             </Select>
                           </div>
                         )}
-                        {row.categoryId && !row.matchedRuleId && (
-                          <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer" title="Ao aprender esta regra, exigir também o valor exacto desta linha">
+                        {row.categoryId && (
+                          <label
+                            className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer"
+                            title={`Esta regra só aplica quando o valor é exactamente ${formatCurrency(row.amount)}. Útil para distinguir movimentos com a mesma descrição mas valores diferentes (ex: vários seguros).`}
+                          >
                             <Checkbox
                               checked={row.matchExactAmount}
                               onCheckedChange={(v) => updateRow(row.rowId, { matchExactAmount: !!v })}
@@ -632,6 +635,33 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                             />
                             valor exacto
                           </label>
+                        )}
+                        {row.possibleDuplicateOf && !row.possibleDuplicateDismissed && !row.isExisting && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Badge className="text-[10px] px-1 py-0 h-4 bg-warning-muted text-warning border-0 cursor-pointer">
+                                <Info className="mr-0.5 h-2.5 w-2.5" />possível duplicado
+                              </Badge>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 text-xs space-y-2" align="start">
+                              <p className="font-medium">Já existe um movimento parecido:</p>
+                              <div className="space-y-0.5 text-muted-foreground">
+                                <div><span className="text-foreground tabular-nums">{formatDate(row.possibleDuplicateOf.date, 'DD/MM/YYYY')}</span> · <span className="text-foreground tabular-nums">{formatCurrency(row.possibleDuplicateOf.amount)}</span></div>
+                                {row.possibleDuplicateOf.notes && <div className="truncate">«{row.possibleDuplicateOf.notes}»</div>}
+                                <div>
+                                  {row.possibleDuplicateOf.categoryName && <span>Categoria: {row.possibleDuplicateOf.categoryName} · </span>}
+                                  {row.possibleDuplicateOf.bankSource && <span>Origem: {row.possibleDuplicateOf.bankSource}</span>}
+                                </div>
+                                {row.possibleDuplicateOf.daysDiff !== 0 && (
+                                  <div>Diferença: {Math.abs(row.possibleDuplicateOf.daysDiff)} dia(s)</div>
+                                )}
+                              </div>
+                              <div className="flex gap-2 pt-1">
+                                <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { ignore: true, possibleDuplicateDismissed: true })}>É o mesmo — ignorar</Button>
+                                <Button size="sm" variant="ghost" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { possibleDuplicateDismissed: true })}>São diferentes</Button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         )}
                       </div>
                     </TableCell>
