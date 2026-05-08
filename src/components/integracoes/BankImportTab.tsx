@@ -103,12 +103,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         .not('recurring_rule_id', 'is', null)
         .order('id')
     );
-    const autoByRulePeriod = new Map<string, { id: string; amount: number }>();
+    const autoByRulePeriodLocal = new Map<string, { id: string; amount: number }>();
     (autoGen || []).forEach((t: any) => {
       const d = new Date(t.date);
       const key = `${t.recurring_rule_id}|${d.getFullYear()}-${d.getMonth()}`;
-      autoByRulePeriod.set(key, { id: t.id, amount: Number(t.amount) });
+      autoByRulePeriodLocal.set(key, { id: t.id, amount: Number(t.amount) });
     });
+    setAutoByRulePeriod(autoByRulePeriodLocal);
 
     const preview: PreviewRow[] = parsed.rows.map((r, i) => {
       const match = findMatchingRule(r, rules);
