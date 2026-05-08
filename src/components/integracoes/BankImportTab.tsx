@@ -219,8 +219,18 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     const ignored = rows.filter(r => r.ignore).length;
     const duplicates = rows.filter(r => r.isDuplicate || r.isExisting).length;
 
+    const replacedAutoIds = new Set<string>();
+    const updatedRuleIds = new Set<string>();
+
     for (let i = 0; i < toImport.length; i++) {
       const row = toImport[i];
+
+      // Replace auto-generated transaction (only first occurrence per period)
+      if (row.recurringRuleId && row.replacesAutoId && !replacedAutoIds.has(row.replacesAutoId)) {
+        await supabase.from('transactions').delete().eq('id', row.replacesAutoId);
+        replacedAutoIds.add(row.replacesAutoId);
+      }
+
       const { error } = await supabase.from('transactions').insert({
         user_id: userId,
         date: row.date,
@@ -234,9 +244,21 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         import_id: importRecord?.id,
         is_recurring: !!row.recurringRuleId,
         recurring_rule_id: row.recurringRuleId,
+        auto_generated: false,
       });
       if (error) errors++; else {
         imported++;
+
+        // Update recurring rule amount if it differs (first occurrence per rule only)
+        if (row.recurringRuleId && row.recurringExpectedAmount !== null && !updatedRuleIds.has(row.recurringRuleId)) {
+          if (Math.abs(row.recurringExpectedAmount - row.amount) > 0.005) {
+            const rec = recurrings.find((x: any) => x.id === row.recurringRuleId);
+            await supabase.from('recurring_rules').update({ amount: row.amount }).eq('id', row.recurringRuleId);
+            toast.info(`Valor da recorrência «${rec?.name || ''}» atualizado: ${formatCurrency(row.recurringExpectedAmount)} → ${formatCurrency(row.amount)}`);
+            updatedRuleIds.add(row.recurringRuleId);
+          }
+        }
+
         if ((row.categoryId || row.recurringRuleId) && !row.matchedRuleId) {
           await learnCategorizeRule(userId, row, row.categoryId, row.subcategoryId, row.macroGroup, row.recurringRuleId);
         }
