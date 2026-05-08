@@ -16,7 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Upload, FileText, CheckCircle2, Loader2, AlertTriangle, Ban, Sparkles, Wand2, CalendarIcon } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, Loader2, AlertTriangle, Ban, Sparkles, Wand2, CalendarIcon, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
