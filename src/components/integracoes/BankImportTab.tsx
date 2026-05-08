@@ -557,6 +557,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         {counts.pending > 0 && <Badge variant="outline">{counts.pending} por categorizar</Badge>}
         {counts.ignored > 0 && <Badge className="bg-muted text-muted-foreground border-0"><Ban className="mr-1 h-3 w-3" />{counts.ignored} ignoradas</Badge>}
         {counts.duplicates > 0 && <Badge className="bg-warning-muted text-warning border-0"><AlertTriangle className="mr-1 h-3 w-3" />{counts.duplicates} duplicadas</Badge>}
+        {counts.possibleDuplicates > 0 && <Badge className="bg-warning-muted text-warning border-0"><AlertTriangle className="mr-1 h-3 w-3" />{counts.possibleDuplicates} possíveis duplicados</Badge>}
         {counts.skippedByDate > 0 && <Badge className="bg-muted text-muted-foreground border-0">{counts.skippedByDate} antes do corte</Badge>}
       </div>
 
