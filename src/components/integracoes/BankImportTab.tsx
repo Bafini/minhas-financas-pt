@@ -185,7 +185,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
     setRows(preview);
     setStep('preview');
-  }, [file, bank, userId, rules]);
+  }, [file, bank, userId, rules, recurrings, defaultDivergenceResolution]);
 
   const updateRow = (rowId: number, patch: Partial<PreviewRow>) => {
     setRows(prev => prev.map(r => r.rowId === rowId ? { ...r, ...patch } : r));
