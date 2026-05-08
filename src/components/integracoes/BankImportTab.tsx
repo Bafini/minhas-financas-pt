@@ -510,10 +510,11 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                 return (
                   <TableRow key={row.rowId} className={cn(
                     row.ignore && 'opacity-50',
+                    isBeforeCutoff(row.date) && 'opacity-50',
                     (row.isDuplicate || row.isExisting) && 'bg-warning-muted/30'
                   )}>
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">{row.date}</TableCell>
-                    <TableCell className="text-xs max-w-[220px]">
+                    <TableCell className="text-xs max-w-[260px]">
                       <div className="truncate" title={row.description}>{row.description}</div>
                       <div className="flex flex-wrap gap-1 mt-0.5">
                         {row.matchedRuleId && !row.matchedIgnore && (
@@ -524,13 +525,28 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         {(row.isDuplicate || row.isExisting) && (
                           <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">duplicado</Badge>
                         )}
+                        {isBeforeCutoff(row.date) && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">antes do corte</Badge>
+                        )}
                         {row.replacesAutoId && (
                           <Badge className="text-[10px] px-1 py-0 h-4 bg-primary/10 text-primary border-0">substitui auto-gerada</Badge>
                         )}
                         {row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - row.amount) > 0.005 && (
-                          <Badge className="text-[10px] px-1 py-0 h-4 bg-warning-muted text-warning border-0">
-                            valor difere: {formatCurrency(row.recurringExpectedAmount)} → {formatCurrency(row.amount)}
-                          </Badge>
+                          <div className="flex items-center gap-1">
+                            <Badge className="text-[10px] px-1 py-0 h-4 bg-warning-muted text-warning border-0">
+                              difere: {formatCurrency(row.recurringExpectedAmount)} → {formatCurrency(row.amount)}
+                            </Badge>
+                            <Select
+                              value={row.divergenceResolution || 'file'}
+                              onValueChange={(v) => updateRow(row.rowId, { divergenceResolution: v as 'file' | 'rule' })}
+                            >
+                              <SelectTrigger className="h-5 text-[10px] px-1 w-[110px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="file" className="text-xs">Usar ficheiro</SelectItem>
+                                <SelectItem value="rule" className="text-xs">Manter recorrente</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         )}
                       </div>
                     </TableCell>
