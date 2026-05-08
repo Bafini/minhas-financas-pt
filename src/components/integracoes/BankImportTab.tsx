@@ -56,9 +56,12 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
   const [result, setResult] = useState<{ imported: number; ignored: number; duplicates: number; errors: number } | null>(null);
   const [ignoreDialog, setIgnoreDialog] = useState<{ open: boolean; rowId: number | null; pattern: string }>({ open: false, rowId: null, pattern: '' });
 
+  const [recurrings, setRecurrings] = useState<any[]>([]);
+
   useEffect(() => {
     fetchCategories(userId).then(setCategories);
     fetchImportRules(userId).then(setRules).catch(() => setRules([]));
+    fetchRecurringRules(userId).then(setRecurrings).catch(() => setRecurrings([]));
   }, [userId]);
 
   const accept = useMemo(() => BANK_OPTIONS.find(b => b.value === bank)?.accept || '.csv', [bank]);
