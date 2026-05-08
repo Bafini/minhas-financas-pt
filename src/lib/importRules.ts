@@ -12,6 +12,7 @@ export interface ImportRule {
   category_id: string | null;
   subcategory_id: string | null;
   macro_group: MacroGroup | null;
+  recurring_rule_id: string | null;
   priority: number;
   auto_learned: boolean;
   is_active: boolean;
