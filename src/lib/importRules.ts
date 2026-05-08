@@ -148,7 +148,6 @@ export async function bumpRuleUsage(ruleIds: string[]): Promise<void> {
   if (ruleIds.length === 0) return;
   const now = new Date().toISOString();
   for (const id of ruleIds) {
-    await supabase.rpc as any; // no-op type guard
     const { data } = await supabase.from('import_rules').select('hit_count').eq('id', id).maybeSingle();
     await supabase.from('import_rules').update({
       hit_count: ((data?.hit_count as number) || 0) + 1,
