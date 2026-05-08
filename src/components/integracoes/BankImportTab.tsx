@@ -209,7 +209,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
     const preview: PreviewRow[] = parsed.rows.map((r, i) => {
       const match = findMatchingRule(r, rules);
-      const isExisting = existingSet.has(`${r.date}|${r.amount}|${r.bankSource}|${r.externalRef}`);
+      const isExisting = existingSet.has(`${r.date}|${Math.abs(r.amount).toFixed(2)}|${r.bankSource}|${r.externalRef}`);
       const macroGroup: MacroGroup =
         match?.rule.macro_group ||
         (r.amount >= 0 ? 'Rendimentos' : 'Despesas');
