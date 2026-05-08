@@ -628,7 +628,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         {row.categoryId && (
                           <label
                             className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer"
-                            title={`Esta regra só aplica quando o valor é exactamente ${formatCurrency(row.amount)}. Útil para distinguir movimentos com a mesma descrição mas valores diferentes (ex: vários seguros).`}
+                            title={`Esta regra só aplica quando o valor é exactamente ${formatCurrency(Math.abs(row.amount))}. Útil para distinguir movimentos com a mesma descrição mas valores diferentes (ex: vários seguros).`}
                           >
                             <Checkbox
                               checked={row.matchExactAmount}
