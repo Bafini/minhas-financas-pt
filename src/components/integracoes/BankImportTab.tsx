@@ -84,6 +84,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
   const [customCutoffDate, setCustomCutoffDate] = useState<Date | null>(null);
   const [lastUpdatedDate, setLastUpdatedDate] = useState<string | null>(null);
   const [defaultDivergenceResolution, setDefaultDivergenceResolution] = useState<'file' | 'rule'>('file');
+  const [previewBankSource, setPreviewBankSource] = useState<BankSource | null>(null);
+  const [lastImported, setLastImported] = useState<Array<{ id: string; date: string; amount: number; notes: string | null; macro_group: MacroGroup; category_id: string | null }>>([]);
 
   useEffect(() => {
     fetchCategories(userId).then(setCategories);
