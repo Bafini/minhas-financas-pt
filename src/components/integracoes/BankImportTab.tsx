@@ -608,10 +608,10 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         {row.replacesAutoId && (
                           <Badge className="text-[10px] px-1 py-0 h-4 bg-primary/10 text-primary border-0">substitui auto-gerada</Badge>
                         )}
-                        {row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - row.amount) > 0.005 && (
+                        {row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - Math.abs(row.amount)) > 0.005 && (
                           <div className="flex items-center gap-1">
                             <Badge className="text-[10px] px-1 py-0 h-4 bg-warning-muted text-warning border-0">
-                              difere: {formatCurrency(row.recurringExpectedAmount)} → {formatCurrency(row.amount)}
+                              difere: {formatCurrency(row.recurringExpectedAmount)} → {formatCurrency(Math.abs(row.amount))}
                             </Badge>
                             <Select
                               value={row.divergenceResolution || 'file'}
