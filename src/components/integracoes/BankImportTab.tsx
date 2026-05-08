@@ -404,6 +404,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
           <p className="text-sm">{result.imported} movimentos importados</p>
           {result.ignored > 0 && <p className="text-sm text-muted-foreground">{result.ignored} ignorados por regra</p>}
           {result.duplicates > 0 && <p className="text-sm text-muted-foreground">{result.duplicates} duplicados</p>}
+          {result.skippedByDate > 0 && <p className="text-sm text-muted-foreground">{result.skippedByDate} ignorados por data de corte</p>}
           {result.errors > 0 && <p className="text-sm text-destructive">{result.errors} erros</p>}
           <Button className="mt-4" onClick={() => { setStep('upload'); setFile(null); setRows([]); setResult(null); }}>
             Nova Importação
