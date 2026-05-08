@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchCategories } from '@/lib/queries';
+import { fetchCategories, fetchRecurringRules } from '@/lib/queries';
 import { fetchAllRows } from '@/lib/supabaseHelpers';
 import { parseBankFile, ParsedBankRow, BankSource } from '@/lib/bankParsers';
 import { fetchImportRules, findMatchingRule, learnCategorizeRule, createIgnoreRule, normalizeDescription, ImportRule } from '@/lib/importRules';
@@ -31,6 +31,7 @@ interface PreviewRow extends ParsedBankRow {
   macroGroup: MacroGroup;
   categoryId: string | null;
   subcategoryId: string | null;
+  recurringRuleId: string | null;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
@@ -55,9 +56,12 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
   const [result, setResult] = useState<{ imported: number; ignored: number; duplicates: number; errors: number } | null>(null);
   const [ignoreDialog, setIgnoreDialog] = useState<{ open: boolean; rowId: number | null; pattern: string }>({ open: false, rowId: null, pattern: '' });
 
+  const [recurrings, setRecurrings] = useState<any[]>([]);
+
   useEffect(() => {
     fetchCategories(userId).then(setCategories);
     fetchImportRules(userId).then(setRules).catch(() => setRules([]));
+    fetchRecurringRules(userId).then(setRecurrings).catch(() => setRecurrings([]));
   }, [userId]);
 
   const accept = useMemo(() => BANK_OPTIONS.find(b => b.value === bank)?.accept || '.csv', [bank]);
@@ -105,6 +109,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         macroGroup,
         categoryId: match?.rule.category_id || null,
         subcategoryId: match?.rule.subcategory_id || null,
+        recurringRuleId: (match?.rule as any)?.recurring_rule_id || null,
       };
     });
 
@@ -195,11 +200,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         bank_source: row.bankSource,
         external_ref: row.externalRef,
         import_id: importRecord?.id,
+        is_recurring: !!row.recurringRuleId,
+        recurring_rule_id: row.recurringRuleId,
       });
       if (error) errors++; else {
         imported++;
-        if (row.categoryId && !row.matchedRuleId) {
-          await learnCategorizeRule(userId, row, row.categoryId, row.subcategoryId, row.macroGroup);
+        if ((row.categoryId || row.recurringRuleId) && !row.matchedRuleId) {
+          await learnCategorizeRule(userId, row, row.categoryId, row.subcategoryId, row.macroGroup, row.recurringRuleId);
         }
       }
       setImportProgress(i + 1);
@@ -321,6 +328,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                 <TableHead>Grupo</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Subcategoria</TableHead>
+                <TableHead>Recorrente</TableHead>
                 <TableHead className="text-center">Ignorar</TableHead>
                 <TableHead></TableHead>
               </TableRow>
@@ -375,6 +383,34 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="—" /></SelectTrigger>
                         <SelectContent>
                           {subs.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={row.recurringRuleId || '__none__'}
+                        onValueChange={(v) => {
+                          if (v === '__none__') {
+                            updateRow(row.rowId, { recurringRuleId: null });
+                          } else {
+                            const rec = recurrings.find((x: any) => x.id === v);
+                            if (rec) {
+                              updateRow(row.rowId, {
+                                recurringRuleId: v,
+                                categoryId: rec.category_id,
+                                subcategoryId: rec.subcategory_id,
+                                macroGroup: rec.macro_group,
+                              });
+                            }
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— Nenhuma —</SelectItem>
+                          {recurrings.map((r: any) => (
+                            <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </TableCell>

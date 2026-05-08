@@ -311,6 +311,7 @@ export type Database = {
           match_field: string
           match_pattern: string
           priority: number
+          recurring_rule_id: string | null
           rule_type: string
           subcategory_id: string | null
           updated_at: string
@@ -329,6 +330,7 @@ export type Database = {
           match_field?: string
           match_pattern: string
           priority?: number
+          recurring_rule_id?: string | null
           rule_type?: string
           subcategory_id?: string | null
           updated_at?: string
@@ -347,6 +349,7 @@ export type Database = {
           match_field?: string
           match_pattern?: string
           priority?: number
+          recurring_rule_id?: string | null
           rule_type?: string
           subcategory_id?: string | null
           updated_at?: string

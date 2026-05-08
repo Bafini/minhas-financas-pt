@@ -12,6 +12,7 @@ export interface ImportRule {
   category_id: string | null;
   subcategory_id: string | null;
   macro_group: MacroGroup | null;
+  recurring_rule_id: string | null;
   priority: number;
   auto_learned: boolean;
   is_active: boolean;
@@ -86,7 +87,8 @@ export async function learnCategorizeRule(
   row: ParsedBankRow,
   categoryId: string | null,
   subcategoryId: string | null,
-  macroGroup: MacroGroup | null
+  macroGroup: MacroGroup | null,
+  recurringRuleId: string | null = null
 ): Promise<void> {
   const pattern = normalizeDescription(row.description);
   if (!pattern || pattern.length < 3) return;
@@ -105,6 +107,7 @@ export async function learnCategorizeRule(
       category_id: categoryId,
       subcategory_id: subcategoryId,
       macro_group: macroGroup,
+      recurring_rule_id: recurringRuleId,
       hit_count: (existing.hit_count || 0) + 1,
       last_used_at: new Date().toISOString(),
     }).eq('id', existing.id);
@@ -118,6 +121,7 @@ export async function learnCategorizeRule(
       category_id: categoryId,
       subcategory_id: subcategoryId,
       macro_group: macroGroup,
+      recurring_rule_id: recurringRuleId,
       priority: 100,
       auto_learned: true,
       hit_count: 1,

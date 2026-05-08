@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchCategories } from '@/lib/queries';
+import { fetchCategories, fetchRecurringRules } from '@/lib/queries';
 import { fetchImportRules, ImportRule } from '@/lib/importRules';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,14 +16,19 @@ interface Props { userId: string }
 const ImportRulesTab: React.FC<Props> = ({ userId }) => {
   const [rules, setRules] = useState<ImportRule[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [recurrings, setRecurrings] = useState<any[]>([]);
   const [filterBank, setFilterBank] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
   const reload = async () => {
     setLoading(true);
-    const [r, c] = await Promise.all([fetchImportRules(userId), fetchCategories(userId)]);
-    setRules(r); setCategories(c || []);
+    const [r, c, rec] = await Promise.all([
+      fetchImportRules(userId),
+      fetchCategories(userId),
+      fetchRecurringRules(userId).catch(() => []),
+    ]);
+    setRules(r); setCategories(c || []); setRecurrings(rec || []);
     setLoading(false);
   };
   useEffect(() => { reload(); }, [userId]);
@@ -95,6 +100,7 @@ const ImportRulesTab: React.FC<Props> = ({ userId }) => {
                 <TableHead>Padrão</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Subcategoria</TableHead>
+                <TableHead>Recorrente</TableHead>
                 <TableHead className="text-right">Usos</TableHead>
                 <TableHead className="text-center">Ativa</TableHead>
                 <TableHead></TableHead>
@@ -102,9 +108,9 @@ const ImportRulesTab: React.FC<Props> = ({ userId }) => {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">A carregar...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-8">A carregar...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">Sem regras. Cria regras a partir das tuas importações.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-8">Sem regras. Cria regras a partir das tuas importações.</TableCell></TableRow>
               ) : filtered.map(r => (
                 <TableRow key={r.id} className={!r.is_active ? 'opacity-50' : ''}>
                   <TableCell>
@@ -120,6 +126,7 @@ const ImportRulesTab: React.FC<Props> = ({ userId }) => {
                   <TableCell className="text-xs font-mono max-w-[260px] truncate" title={r.match_pattern}>{r.match_pattern}</TableCell>
                   <TableCell className="text-xs">{catName(r.category_id)}</TableCell>
                   <TableCell className="text-xs">{subName(r.category_id, r.subcategory_id)}</TableCell>
+                  <TableCell className="text-xs">{(r as any).recurring_rule_id ? (recurrings.find((x: any) => x.id === (r as any).recurring_rule_id)?.name || '—') : '—'}</TableCell>
                   <TableCell className="text-right tabular-nums text-xs">{r.hit_count}</TableCell>
                   <TableCell className="text-center">
                     <Switch checked={r.is_active} onCheckedChange={() => toggle(r)} />
