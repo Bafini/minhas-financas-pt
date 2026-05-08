@@ -135,8 +135,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     const existingByDateAmount = new Map<string, any[]>();
     (existing || []).forEach((e: any) => {
       const ref = e.external_ref || e.notes || '';
-      existingSet.add(`${e.date}|${e.amount}|${e.bank_source || 'manual'}|${ref}`);
-      const k = `${e.date}|${Number(e.amount).toFixed(2)}`;
+      const absAmt = Math.abs(Number(e.amount)).toFixed(2);
+      existingSet.add(`${e.date}|${absAmt}|${e.bank_source || 'manual'}|${ref}`);
+      const k = `${e.date}|${absAmt}`;
       const arr = existingByDateAmount.get(k) || [];
       arr.push(e);
       existingByDateAmount.set(k, arr);
@@ -145,7 +146,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     // Also index by amount alone, for ±3 days window
     const existingByAmount = new Map<string, any[]>();
     (existing || []).forEach((e: any) => {
-      const k = Number(e.amount).toFixed(2);
+      const k = Math.abs(Number(e.amount)).toFixed(2);
       const arr = existingByAmount.get(k) || [];
       arr.push(e);
       existingByAmount.set(k, arr);
@@ -172,14 +173,14 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     setAutoByRulePeriod(autoByRulePeriodLocal);
 
     const findPossibleDuplicate = (r: ParsedBankRow): PossibleDuplicate | null => {
-      const amountKey = r.amount.toFixed(2);
+      const amountKey = Math.abs(r.amount).toFixed(2);
       const refKey = r.externalRef || '';
-      const strictKey = `${r.date}|${r.amount}|${r.bankSource}|${refKey}`;
+      const strictKey = `${r.date}|${amountKey}|${r.bankSource}|${refKey}`;
       // Same date + amount, different ref/bank
       const sameDay = existingByDateAmount.get(`${r.date}|${amountKey}`) || [];
       for (const e of sameDay) {
         const eRef = e.external_ref || e.notes || '';
-        const eKey = `${e.date}|${e.amount}|${e.bank_source || 'manual'}|${eRef}`;
+        const eKey = `${e.date}|${Math.abs(Number(e.amount)).toFixed(2)}|${e.bank_source || 'manual'}|${eRef}`;
         if (eKey === strictKey) continue;
         return {
           id: e.id, date: e.date, amount: Number(e.amount),
@@ -208,7 +209,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
     const preview: PreviewRow[] = parsed.rows.map((r, i) => {
       const match = findMatchingRule(r, rules);
-      const isExisting = existingSet.has(`${r.date}|${r.amount}|${r.bankSource}|${r.externalRef}`);
+      const isExisting = existingSet.has(`${r.date}|${Math.abs(r.amount).toFixed(2)}|${r.bankSource}|${r.externalRef}`);
       const macroGroup: MacroGroup =
         match?.rule.macro_group ||
         (r.amount >= 0 ? 'Rendimentos' : 'Despesas');
@@ -222,7 +223,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         const rec = recurrings.find((x: any) => x.id === recurringRuleId);
         if (rec && recurringExpectedAmount === null) recurringExpectedAmount = Number(rec.amount);
       }
-      const diverges = recurringRuleId && recurringExpectedAmount !== null && Math.abs(recurringExpectedAmount - r.amount) > 0.005;
+      const diverges = recurringRuleId && recurringExpectedAmount !== null && Math.abs(recurringExpectedAmount - Math.abs(r.amount)) > 0.005;
       const possibleDuplicateOf = isExisting ? null : findPossibleDuplicate(r);
       return {
         ...r,
@@ -249,7 +250,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
     const seen = new Set<string>();
     preview.forEach(r => {
-      const k = `${r.date}|${r.amount}|${r.bankSource}|${r.externalRef}`;
+      const k = `${r.date}|${Math.abs(r.amount).toFixed(2)}|${r.bankSource}|${r.externalRef}`;
       if (seen.has(k)) r.isDuplicate = true;
       seen.add(k);
     });
@@ -329,12 +330,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     for (let i = 0; i < toImport.length; i++) {
       const row = toImport[i];
 
-      const diverges = row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - row.amount) > 0.005;
+      const absAmount = Math.abs(row.amount);
+      const diverges = row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - absAmount) > 0.005;
       const useRuleAmount = diverges && row.divergenceResolution === 'rule';
-      const finalAmount = useRuleAmount ? (row.recurringExpectedAmount as number) : row.amount;
+      const finalAmount = useRuleAmount ? (row.recurringExpectedAmount as number) : absAmount;
       let finalNotes = row.description;
       if (useRuleAmount) {
-        const diff = row.amount - (row.recurringExpectedAmount as number);
+        const diff = absAmount - (row.recurringExpectedAmount as number);
         const sign = diff >= 0 ? '+' : '';
         finalNotes = `${row.description} | Diferença vs ficheiro: ${sign}${formatCurrency(diff)}`;
       }
@@ -367,8 +369,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         // Update recurring rule amount only when user chose 'file' resolution
         if (diverges && !useRuleAmount && row.recurringRuleId && !updatedRuleIds.has(row.recurringRuleId)) {
           const rec = recurrings.find((x: any) => x.id === row.recurringRuleId);
-          await supabase.from('recurring_rules').update({ amount: row.amount }).eq('id', row.recurringRuleId);
-          toast.info(`Valor da recorrência «${rec?.name || ''}» atualizado: ${formatCurrency(row.recurringExpectedAmount as number)} → ${formatCurrency(row.amount)}`);
+          await supabase.from('recurring_rules').update({ amount: absAmount }).eq('id', row.recurringRuleId);
+          toast.info(`Valor da recorrência «${rec?.name || ''}» atualizado: ${formatCurrency(row.recurringExpectedAmount as number)} → ${formatCurrency(absAmount)}`);
           updatedRuleIds.add(row.recurringRuleId);
         }
 
@@ -606,10 +608,10 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         {row.replacesAutoId && (
                           <Badge className="text-[10px] px-1 py-0 h-4 bg-primary/10 text-primary border-0">substitui auto-gerada</Badge>
                         )}
-                        {row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - row.amount) > 0.005 && (
+                        {row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - Math.abs(row.amount)) > 0.005 && (
                           <div className="flex items-center gap-1">
                             <Badge className="text-[10px] px-1 py-0 h-4 bg-warning-muted text-warning border-0">
-                              difere: {formatCurrency(row.recurringExpectedAmount)} → {formatCurrency(row.amount)}
+                              difere: {formatCurrency(row.recurringExpectedAmount)} → {formatCurrency(Math.abs(row.amount))}
                             </Badge>
                             <Select
                               value={row.divergenceResolution || 'file'}
@@ -626,7 +628,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         {row.categoryId && (
                           <label
                             className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer"
-                            title={`Esta regra só aplica quando o valor é exactamente ${formatCurrency(row.amount)}. Útil para distinguir movimentos com a mesma descrição mas valores diferentes (ex: vários seguros).`}
+                            title={`Esta regra só aplica quando o valor é exactamente ${formatCurrency(Math.abs(row.amount))}. Útil para distinguir movimentos com a mesma descrição mas valores diferentes (ex: vários seguros).`}
                           >
                             <Checkbox
                               checked={row.matchExactAmount}
@@ -665,8 +667,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className={cn('text-right tabular-nums text-xs', row.amount >= 0 ? 'text-income' : 'text-expense')}>
-                      {formatCurrency(row.amount)}
+                    <TableCell className={cn('text-right tabular-nums text-xs', row.macroGroup === 'Rendimentos' ? 'text-income' : 'text-expense')}>
+                      {formatCurrency(Math.abs(row.amount))}
                     </TableCell>
                     <TableCell>
                       <Select value={row.macroGroup} onValueChange={(v) => updateRow(row.rowId, { macroGroup: v as MacroGroup, categoryId: null, subcategoryId: null })}>
@@ -706,7 +708,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                               const d = new Date(row.date);
                               const found = autoByRulePeriod.get(`${v}|${d.getFullYear()}-${d.getMonth()}`);
                               const expected = found ? found.amount : Number(rec.amount);
-                              const diverges = Math.abs(expected - row.amount) > 0.005;
+                              const diverges = Math.abs(expected - Math.abs(row.amount)) > 0.005;
                               updateRow(row.rowId, {
                                 recurringRuleId: v,
                                 categoryId: rec.category_id,
