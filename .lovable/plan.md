@@ -1,53 +1,59 @@
+## Melhorias na Importação Bancária
 
-## Comportamento ao associar linha do ficheiro a uma regra recorrente
+### 1. Filtro de data inicial das linhas a importar
 
-### Regra
-Quando o utilizador (ou a aprendizagem automática) associa uma linha do ficheiro a uma `recurring_rule`, o ficheiro é a fonte de verdade:
+No passo de **preview** do `BankImportTab.tsx`, adicionar um controlo de data com duas opções:
 
-1. **Substitui** a transação auto-gerada (se existir) para o período correspondente
-2. **Atualiza o valor** da regra recorrente para refletir o valor real do ficheiro
-3. Mantém o vínculo `recurring_rule_id` na nova transação
+- **A partir da última atualização** (default) — usa `profiles.movements_updated_until` do perfil ativo (+1 dia). Se for `null`, comporta-se como "todas".
+- **A partir de data específica** — DatePicker (DD/MM/AAAA) que o utilizador escolhe.
+- **Todas as linhas** — sem filtro.
 
-### Fluxo no momento do "Importar" (em `BankImportTab.tsx`)
+Linhas com `parsedDate < dataCorte` ficam visíveis na tabela mas com badge **"Antes do corte"** e marcadas como `skipped` (não contam para `validCount`, não são importadas). Resumo no topo passa a mostrar `X ignoradas por data`.
 
-Para cada linha com `recurringRuleId` definido:
+Após import bem-sucedido, atualiza `profiles.movements_updated_until` para a maior data importada (se for posterior à atual).
 
 ```text
-1. Calcular período da recorrência (mês/ano da data do ficheiro)
-2. Procurar transação existente em `transactions` com:
-     - recurring_rule_id = X
-     - auto_generated = true
-     - data dentro do período (ex: mesmo mês/ano)
-3. Se encontrada → DELETE essa transação (substituição)
-4. INSERT nova transação com:
-     - dados do ficheiro (date, amount, description em notes)
-     - recurring_rule_id = X
-     - is_recurring = true
-     - auto_generated = false  (vem do extrato real)
-     - bank_source, external_ref
-     - category_id, subcategory_id, macro_group herdados da regra
-5. Se valor do ficheiro ≠ valor atual da regra:
-     - UPDATE recurring_rules SET amount = <valor ficheiro> WHERE id = X
-     - Mostrar toast: "Valor da recorrência «Nome» atualizado: 45,00 € → 47,30 €"
+[Cortar a partir de:]  ( ) Última atualização (15/04/2026)
+                       (•) Data específica  [01/05/2026 ▼]
+                       ( ) Importar todas
 ```
 
-### Indicação visual no preview
+### 2. Escolha do valor quando diverge da recorrente
 
-Antes do import, na linha do preview com recorrente associada:
-- Badge **"Substitui auto-gerada"** se já existe transação automática para esse período
-- Badge **"Valor difere: 45,00 → 47,30"** quando o valor do ficheiro diverge da regra (apenas informativo, será aplicado na importação)
+Quando uma linha está associada a uma `recurring_rule` e `Math.abs(file - rule) > 0.005`:
 
-### Edge case: múltiplas linhas para a mesma recorrência no mesmo período
-Se o utilizador associar duas linhas à mesma regra no mesmo mês (ex: pagamento parcelado), apenas a primeira substitui a auto-gerada. As seguintes são inseridas normalmente com `recurring_rule_id` mas sem apagar mais nada. Não atualiza o valor da regra nestes casos (evita oscilação).
+- Substituir o badge informativo atual por um pequeno **toggle por linha** com duas opções:
+  - **Usar valor do ficheiro** (default) → comportamento atual: insere com valor do ficheiro e atualiza `recurring_rules.amount`.
+  - **Manter valor da recorrente** → insere a transação com o valor da regra (não do ficheiro), substitui a auto-gerada, **não** atualiza `recurring_rules.amount`. A diferença (file − rule) fica registada nas `notes` da transação como `"Diferença vs ficheiro: +2,30 €"` para rastreabilidade (caso típico: parte em dinheiro + parte por transferência).
 
-### Sem alterações de schema
-Toda a lógica usa colunas já existentes:
-- `transactions.auto_generated` (já existe)
-- `transactions.recurring_rule_id` (já existe)
-- `recurring_rules.amount` (já existe)
+```text
+Linha: NETFLIX 12,99 €  → recorrente "Netflix" (esperado 15,99 €)
+   Valor difere: 12,99 → 15,99
+   ( ) Usar 12,99 (ficheiro) e atualizar recorrente
+   (•) Manter 15,99 (recorrente)  [diferença ficará nas notas]
+```
 
-### Ficheiros a editar
-- `src/components/integracoes/BankImportTab.tsx` — adicionar:
-  - Lookup de transações auto-geradas existentes ao carregar preview (para mostrar badge "Substitui")
-  - Lógica de substituição + update de `recurring_rules.amount` no handler de importação
-  - Badges visuais "Substitui auto-gerada" e "Valor difere"
+A escolha por linha sobrepõe-se ao default. Adicionar também um **toggle global** no topo do preview ("Quando valor diverge da recorrente: usar ficheiro / manter recorrente") que define o default para todas as linhas divergentes.
+
+### Detalhes técnicos
+
+**Ficheiro a editar:** `src/components/integracoes/BankImportTab.tsx`
+
+Novos campos em `PreviewRow`:
+- `skippedByDate: boolean`
+- `divergenceResolution: 'file' | 'rule' | null` (null quando não diverge)
+
+Novo estado no componente:
+- `cutoffMode: 'last' | 'custom' | 'all'`
+- `customCutoffDate: Date | null`
+- `lastUpdatedDate: string | null` (carregado de `profiles.movements_updated_until` no mount)
+- `defaultDivergenceResolution: 'file' | 'rule'`
+
+Lógica de `handleImport`:
+- Filtra `toImport` excluindo `skippedByDate`.
+- Para cada linha com `recurringRuleId` e divergência:
+  - Se `resolution === 'file'`: insere com `row.amount`, **update** `recurring_rules.amount` (já implementado).
+  - Se `resolution === 'rule'`: insere com `row.recurringExpectedAmount`, append à coluna `notes` o texto `"Diferença vs ficheiro: ±X,XX €"`, **NÃO** atualiza a regra. Substituição da auto-gerada mantém-se.
+- Após o loop, calcula `maxImportedDate` e faz `update profiles.movements_updated_until` se aplicável.
+
+Sem alterações de schema — usa colunas existentes (`profiles.movements_updated_until`, `transactions.notes`, `transactions.amount`, `recurring_rules.amount`).

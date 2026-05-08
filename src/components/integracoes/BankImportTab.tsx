@@ -16,9 +16,13 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Upload, FileText, CheckCircle2, Loader2, AlertTriangle, Ban, Sparkles, Wand2 } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, Loader2, AlertTriangle, Ban, Sparkles, Wand2, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatDate } from '@/lib/formatters';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { format } from 'date-fns';
 
 interface PreviewRow extends ParsedBankRow {
   rowId: number;
@@ -34,6 +38,7 @@ interface PreviewRow extends ParsedBankRow {
   recurringRuleId: string | null;
   replacesAutoId: string | null;
   recurringExpectedAmount: number | null;
+  divergenceResolution: 'file' | 'rule' | null;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
@@ -55,17 +60,41 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
   const [rules, setRules] = useState<ImportRule[]>([]);
   const [importProgress, setImportProgress] = useState(0);
   const [importTotal, setImportTotal] = useState(0);
-  const [result, setResult] = useState<{ imported: number; ignored: number; duplicates: number; errors: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number; ignored: number; duplicates: number; errors: number; skippedByDate: number } | null>(null);
   const [ignoreDialog, setIgnoreDialog] = useState<{ open: boolean; rowId: number | null; pattern: string }>({ open: false, rowId: null, pattern: '' });
 
   const [recurrings, setRecurrings] = useState<any[]>([]);
   const [autoByRulePeriod, setAutoByRulePeriod] = useState<Map<string, { id: string; amount: number }>>(new Map());
 
+  const [cutoffMode, setCutoffMode] = useState<'last' | 'custom' | 'all'>('last');
+  const [customCutoffDate, setCustomCutoffDate] = useState<Date | null>(null);
+  const [lastUpdatedDate, setLastUpdatedDate] = useState<string | null>(null);
+  const [defaultDivergenceResolution, setDefaultDivergenceResolution] = useState<'file' | 'rule'>('file');
+
   useEffect(() => {
     fetchCategories(userId).then(setCategories);
     fetchImportRules(userId).then(setRules).catch(() => setRules([]));
     fetchRecurringRules(userId).then(setRecurrings).catch(() => setRecurrings([]));
+    supabase.from('profiles').select('movements_updated_until').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => setLastUpdatedDate(data?.movements_updated_until || null));
   }, [userId]);
+
+  const effectiveCutoff = useMemo<string | null>(() => {
+    if (cutoffMode === 'all') return null;
+    if (cutoffMode === 'last') return lastUpdatedDate;
+    if (cutoffMode === 'custom' && customCutoffDate) {
+      const y = customCutoffDate.getFullYear();
+      const m = String(customCutoffDate.getMonth() + 1).padStart(2, '0');
+      const d = String(customCutoffDate.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return null;
+  }, [cutoffMode, customCutoffDate, lastUpdatedDate]);
+
+  const isBeforeCutoff = useCallback((date: string) => {
+    if (!effectiveCutoff) return false;
+    return date < effectiveCutoff;
+  }, [effectiveCutoff]);
 
   const accept = useMemo(() => BANK_OPTIONS.find(b => b.value === bank)?.accept || '.csv', [bank]);
 
@@ -127,6 +156,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         const rec = recurrings.find((x: any) => x.id === recurringRuleId);
         if (rec && recurringExpectedAmount === null) recurringExpectedAmount = Number(rec.amount);
       }
+      const diverges = recurringRuleId && recurringExpectedAmount !== null && Math.abs(recurringExpectedAmount - r.amount) > 0.005;
       return {
         ...r,
         rowId: i,
@@ -142,6 +172,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         recurringRuleId,
         replacesAutoId,
         recurringExpectedAmount,
+        divergenceResolution: diverges ? defaultDivergenceResolution : null,
       };
     });
 
@@ -154,7 +185,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
     setRows(preview);
     setStep('preview');
-  }, [file, bank, userId, rules]);
+  }, [file, bank, userId, rules, recurrings, defaultDivergenceResolution]);
 
   const updateRow = (rowId: number, patch: Partial<PreviewRow>) => {
     setRows(prev => prev.map(r => r.rowId === rowId ? { ...r, ...patch } : r));
@@ -212,18 +243,30 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       status: 'processing',
     }).select().single();
 
-    const toImport = rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting);
+    const toImport = rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date));
     setImportTotal(toImport.length); setImportProgress(0);
     let imported = 0;
     let errors = 0;
     const ignored = rows.filter(r => r.ignore).length;
     const duplicates = rows.filter(r => r.isDuplicate || r.isExisting).length;
+    const skippedByDate = rows.filter(r => isBeforeCutoff(r.date) && !r.ignore && !r.isDuplicate && !r.isExisting).length;
 
     const replacedAutoIds = new Set<string>();
     const updatedRuleIds = new Set<string>();
+    let maxImportedDate: string | null = null;
 
     for (let i = 0; i < toImport.length; i++) {
       const row = toImport[i];
+
+      const diverges = row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - row.amount) > 0.005;
+      const useRuleAmount = diverges && row.divergenceResolution === 'rule';
+      const finalAmount = useRuleAmount ? (row.recurringExpectedAmount as number) : row.amount;
+      let finalNotes = row.description;
+      if (useRuleAmount) {
+        const diff = row.amount - (row.recurringExpectedAmount as number);
+        const sign = diff >= 0 ? '+' : '';
+        finalNotes = `${row.description} | Diferença vs ficheiro: ${sign}${formatCurrency(diff)}`;
+      }
 
       // Replace auto-generated transaction (only first occurrence per period)
       if (row.recurringRuleId && row.replacesAutoId && !replacedAutoIds.has(row.replacesAutoId)) {
@@ -234,8 +277,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       const { error } = await supabase.from('transactions').insert({
         user_id: userId,
         date: row.date,
-        amount: row.amount,
-        notes: row.description,
+        amount: finalAmount,
+        notes: finalNotes,
         category_id: row.categoryId,
         subcategory_id: row.subcategoryId,
         macro_group: row.macroGroup,
@@ -248,15 +291,14 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       });
       if (error) errors++; else {
         imported++;
+        if (!maxImportedDate || row.date > maxImportedDate) maxImportedDate = row.date;
 
-        // Update recurring rule amount if it differs (first occurrence per rule only)
-        if (row.recurringRuleId && row.recurringExpectedAmount !== null && !updatedRuleIds.has(row.recurringRuleId)) {
-          if (Math.abs(row.recurringExpectedAmount - row.amount) > 0.005) {
-            const rec = recurrings.find((x: any) => x.id === row.recurringRuleId);
-            await supabase.from('recurring_rules').update({ amount: row.amount }).eq('id', row.recurringRuleId);
-            toast.info(`Valor da recorrência «${rec?.name || ''}» atualizado: ${formatCurrency(row.recurringExpectedAmount)} → ${formatCurrency(row.amount)}`);
-            updatedRuleIds.add(row.recurringRuleId);
-          }
+        // Update recurring rule amount only when user chose 'file' resolution
+        if (diverges && !useRuleAmount && row.recurringRuleId && !updatedRuleIds.has(row.recurringRuleId)) {
+          const rec = recurrings.find((x: any) => x.id === row.recurringRuleId);
+          await supabase.from('recurring_rules').update({ amount: row.amount }).eq('id', row.recurringRuleId);
+          toast.info(`Valor da recorrência «${rec?.name || ''}» atualizado: ${formatCurrency(row.recurringExpectedAmount as number)} → ${formatCurrency(row.amount)}`);
+          updatedRuleIds.add(row.recurringRuleId);
         }
 
         if ((row.categoryId || row.recurringRuleId) && !row.matchedRuleId) {
@@ -275,18 +317,28 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       }).eq('id', importRecord.id);
     }
 
-    setResult({ imported, ignored, duplicates, errors });
+    if (maxImportedDate && (!lastUpdatedDate || maxImportedDate > lastUpdatedDate)) {
+      await supabase.from('profiles').update({ movements_updated_until: maxImportedDate }).eq('user_id', userId);
+      setLastUpdatedDate(maxImportedDate);
+    }
+
+    setResult({ imported, ignored, duplicates, errors, skippedByDate });
     setStep('done');
     toast.success(`${imported} movimentos importados`);
   };
 
-  const counts = useMemo(() => ({
-    total: rows.length,
-    auto: rows.filter(r => r.matchedRuleId && !r.matchedIgnore).length,
-    pending: rows.filter(r => !r.ignore && !r.categoryId && !r.isDuplicate && !r.isExisting).length,
-    ignored: rows.filter(r => r.ignore).length,
-    duplicates: rows.filter(r => r.isDuplicate || r.isExisting).length,
-  }), [rows]);
+  const counts = useMemo(() => {
+    const skippedByDate = rows.filter(r => isBeforeCutoff(r.date)).length;
+    return {
+      total: rows.length,
+      auto: rows.filter(r => r.matchedRuleId && !r.matchedIgnore).length,
+      pending: rows.filter(r => !r.ignore && !r.categoryId && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date)).length,
+      ignored: rows.filter(r => r.ignore).length,
+      duplicates: rows.filter(r => r.isDuplicate || r.isExisting).length,
+      skippedByDate,
+      importable: rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date)).length,
+    };
+  }, [rows, isBeforeCutoff]);
 
   if (step === 'upload') {
     return (
@@ -352,6 +404,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
           <p className="text-sm">{result.imported} movimentos importados</p>
           {result.ignored > 0 && <p className="text-sm text-muted-foreground">{result.ignored} ignorados por regra</p>}
           {result.duplicates > 0 && <p className="text-sm text-muted-foreground">{result.duplicates} duplicados</p>}
+          {result.skippedByDate > 0 && <p className="text-sm text-muted-foreground">{result.skippedByDate} ignorados por data de corte</p>}
           {result.errors > 0 && <p className="text-sm text-destructive">{result.errors} erros</p>}
           <Button className="mt-4" onClick={() => { setStep('upload'); setFile(null); setRows([]); setResult(null); }}>
             Nova Importação
@@ -363,12 +416,74 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
   return (
     <>
+      <Card className="glass-surface">
+        <CardContent className="space-y-4 py-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Importar a partir de</Label>
+              <RadioGroup value={cutoffMode} onValueChange={(v) => setCutoffMode(v as any)} className="gap-2">
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="last" id="cut-last" />
+                  <Label htmlFor="cut-last" className="text-sm font-normal cursor-pointer">
+                    Última atualização {lastUpdatedDate ? `(${formatDate(lastUpdatedDate, 'DD/MM/YYYY')})` : '(sem registo)'}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="custom" id="cut-custom" />
+                  <Label htmlFor="cut-custom" className="text-sm font-normal cursor-pointer">Data específica</Label>
+                  {cutoffMode === 'custom' && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-7 text-xs ml-2">
+                          <CalendarIcon className="mr-1 h-3 w-3" />
+                          {customCutoffDate ? format(customCutoffDate, 'dd/MM/yyyy') : 'Escolher'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={customCutoffDate || undefined} onSelect={(d) => setCustomCutoffDate(d || null)} initialFocus className={cn('p-3 pointer-events-auto')} />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="all" id="cut-all" />
+                  <Label htmlFor="cut-all" className="text-sm font-normal cursor-pointer">Importar todas</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Quando valor diverge da recorrente (default)</Label>
+              <RadioGroup
+                value={defaultDivergenceResolution}
+                onValueChange={(v) => {
+                  const next = v as 'file' | 'rule';
+                  setDefaultDivergenceResolution(next);
+                  setRows(prev => prev.map(r => r.divergenceResolution !== null ? { ...r, divergenceResolution: next } : r));
+                }}
+                className="gap-2"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="file" id="div-file" />
+                  <Label htmlFor="div-file" className="text-sm font-normal cursor-pointer">Usar valor do ficheiro (atualiza recorrente)</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="rule" id="div-rule" />
+                  <Label htmlFor="div-rule" className="text-sm font-normal cursor-pointer">Manter valor da recorrente (regista diferença)</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary">{counts.total} linhas</Badge>
         <Badge className="bg-income-muted text-income border-0"><Sparkles className="mr-1 h-3 w-3" />{counts.auto} categorizadas</Badge>
         {counts.pending > 0 && <Badge variant="outline">{counts.pending} por categorizar</Badge>}
         {counts.ignored > 0 && <Badge className="bg-muted text-muted-foreground border-0"><Ban className="mr-1 h-3 w-3" />{counts.ignored} ignoradas</Badge>}
         {counts.duplicates > 0 && <Badge className="bg-warning-muted text-warning border-0"><AlertTriangle className="mr-1 h-3 w-3" />{counts.duplicates} duplicadas</Badge>}
+        {counts.skippedByDate > 0 && <Badge className="bg-muted text-muted-foreground border-0">{counts.skippedByDate} antes do corte</Badge>}
       </div>
 
       <Card className="glass-surface overflow-hidden">
@@ -395,10 +510,11 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                 return (
                   <TableRow key={row.rowId} className={cn(
                     row.ignore && 'opacity-50',
+                    isBeforeCutoff(row.date) && 'opacity-50',
                     (row.isDuplicate || row.isExisting) && 'bg-warning-muted/30'
                   )}>
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">{row.date}</TableCell>
-                    <TableCell className="text-xs max-w-[220px]">
+                    <TableCell className="text-xs max-w-[260px]">
                       <div className="truncate" title={row.description}>{row.description}</div>
                       <div className="flex flex-wrap gap-1 mt-0.5">
                         {row.matchedRuleId && !row.matchedIgnore && (
@@ -409,13 +525,28 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         {(row.isDuplicate || row.isExisting) && (
                           <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">duplicado</Badge>
                         )}
+                        {isBeforeCutoff(row.date) && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">antes do corte</Badge>
+                        )}
                         {row.replacesAutoId && (
                           <Badge className="text-[10px] px-1 py-0 h-4 bg-primary/10 text-primary border-0">substitui auto-gerada</Badge>
                         )}
                         {row.recurringRuleId && row.recurringExpectedAmount !== null && Math.abs(row.recurringExpectedAmount - row.amount) > 0.005 && (
-                          <Badge className="text-[10px] px-1 py-0 h-4 bg-warning-muted text-warning border-0">
-                            valor difere: {formatCurrency(row.recurringExpectedAmount)} → {formatCurrency(row.amount)}
-                          </Badge>
+                          <div className="flex items-center gap-1">
+                            <Badge className="text-[10px] px-1 py-0 h-4 bg-warning-muted text-warning border-0">
+                              difere: {formatCurrency(row.recurringExpectedAmount)} → {formatCurrency(row.amount)}
+                            </Badge>
+                            <Select
+                              value={row.divergenceResolution || 'file'}
+                              onValueChange={(v) => updateRow(row.rowId, { divergenceResolution: v as 'file' | 'rule' })}
+                            >
+                              <SelectTrigger className="h-5 text-[10px] px-1 w-[110px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="file" className="text-xs">Usar ficheiro</SelectItem>
+                                <SelectItem value="rule" className="text-xs">Manter recorrente</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         )}
                       </div>
                     </TableCell>
@@ -453,19 +584,22 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         value={row.recurringRuleId || '__none__'}
                         onValueChange={(v) => {
                           if (v === '__none__') {
-                            updateRow(row.rowId, { recurringRuleId: null, replacesAutoId: null, recurringExpectedAmount: null });
+                            updateRow(row.rowId, { recurringRuleId: null, replacesAutoId: null, recurringExpectedAmount: null, divergenceResolution: null });
                           } else {
                             const rec = recurrings.find((x: any) => x.id === v);
                             if (rec) {
                               const d = new Date(row.date);
                               const found = autoByRulePeriod.get(`${v}|${d.getFullYear()}-${d.getMonth()}`);
+                              const expected = found ? found.amount : Number(rec.amount);
+                              const diverges = Math.abs(expected - row.amount) > 0.005;
                               updateRow(row.rowId, {
                                 recurringRuleId: v,
                                 categoryId: rec.category_id,
                                 subcategoryId: rec.subcategory_id,
                                 macroGroup: rec.macro_group,
                                 replacesAutoId: found?.id || null,
-                                recurringExpectedAmount: found ? found.amount : Number(rec.amount),
+                                recurringExpectedAmount: expected,
+                                divergenceResolution: diverges ? defaultDivergenceResolution : null,
                               });
                             }
                           }
@@ -504,9 +638,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       </Card>
 
       <div className="flex gap-3">
-        <Button onClick={handleImport} disabled={counts.total - counts.ignored - counts.duplicates === 0}>
+        <Button onClick={handleImport} disabled={counts.importable === 0}>
           <CheckCircle2 className="mr-2 h-4 w-4" />
-          Importar {counts.total - counts.ignored - counts.duplicates} movimentos
+          Importar {counts.importable} movimentos
         </Button>
         <Button variant="outline" onClick={() => { setStep('upload'); setFile(null); setRows([]); }}>Cancelar</Button>
       </div>
