@@ -32,6 +32,8 @@ interface PreviewRow extends ParsedBankRow {
   categoryId: string | null;
   subcategoryId: string | null;
   recurringRuleId: string | null;
+  replacesAutoId: string | null;
+  recurringExpectedAmount: number | null;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
