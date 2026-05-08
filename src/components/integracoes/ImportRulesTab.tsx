@@ -108,9 +108,9 @@ const ImportRulesTab: React.FC<Props> = ({ userId }) => {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">A carregar...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-8">A carregar...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">Sem regras. Cria regras a partir das tuas importações.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-8">Sem regras. Cria regras a partir das tuas importações.</TableCell></TableRow>
               ) : filtered.map(r => (
                 <TableRow key={r.id} className={!r.is_active ? 'opacity-50' : ''}>
                   <TableCell>
