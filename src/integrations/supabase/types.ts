@@ -297,8 +297,66 @@ export type Database = {
           },
         ]
       }
+      import_rules: {
+        Row: {
+          auto_learned: boolean
+          bank_source: string
+          category_id: string | null
+          created_at: string
+          hit_count: number
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          macro_group: Database["public"]["Enums"]["macro_group"] | null
+          match_field: string
+          match_pattern: string
+          priority: number
+          rule_type: string
+          subcategory_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_learned?: boolean
+          bank_source?: string
+          category_id?: string | null
+          created_at?: string
+          hit_count?: number
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          macro_group?: Database["public"]["Enums"]["macro_group"] | null
+          match_field?: string
+          match_pattern: string
+          priority?: number
+          rule_type?: string
+          subcategory_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_learned?: boolean
+          bank_source?: string
+          category_id?: string | null
+          created_at?: string
+          hit_count?: number
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          macro_group?: Database["public"]["Enums"]["macro_group"] | null
+          match_field?: string
+          match_pattern?: string
+          priority?: number
+          rule_type?: string
+          subcategory_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       imports: {
         Row: {
+          bank_source: string | null
           created_at: string | null
           duplicate_rows: number | null
           error_rows: number | null
@@ -310,6 +368,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bank_source?: string | null
           created_at?: string | null
           duplicate_rows?: number | null
           error_rows?: number | null
@@ -321,6 +380,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bank_source?: string | null
           created_at?: string | null
           duplicate_rows?: number | null
           error_rows?: number | null
@@ -591,11 +651,13 @@ export type Database = {
         Row: {
           amount: number
           auto_generated: boolean | null
+          bank_source: string | null
           category_id: string | null
           created_at: string | null
           date: string
           event_label: string | null
           exclude_from_kpis: boolean | null
+          external_ref: string | null
           fuel_card_id: string | null
           id: string
           import_id: string | null
@@ -613,11 +675,13 @@ export type Database = {
         Insert: {
           amount: number
           auto_generated?: boolean | null
+          bank_source?: string | null
           category_id?: string | null
           created_at?: string | null
           date: string
           event_label?: string | null
           exclude_from_kpis?: boolean | null
+          external_ref?: string | null
           fuel_card_id?: string | null
           id?: string
           import_id?: string | null
@@ -635,11 +699,13 @@ export type Database = {
         Update: {
           amount?: number
           auto_generated?: boolean | null
+          bank_source?: string | null
           category_id?: string | null
           created_at?: string | null
           date?: string
           event_label?: string | null
           exclude_from_kpis?: boolean | null
+          external_ref?: string | null
           fuel_card_id?: string | null
           id?: string
           import_id?: string | null
