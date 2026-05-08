@@ -93,12 +93,38 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       existingSet.add(`${e.date}|${e.amount}|${e.bank_source || 'manual'}|${ref}`);
     });
 
+    // Fetch auto-generated recurring transactions to detect replacements
+    const autoGen = await fetchAllRows((sb) =>
+      sb.from('transactions')
+        .select('id, date, amount, recurring_rule_id')
+        .eq('user_id', userId)
+        .eq('auto_generated', true)
+        .not('recurring_rule_id', 'is', null)
+        .order('id')
+    );
+    const autoByRulePeriod = new Map<string, { id: string; amount: number }>();
+    (autoGen || []).forEach((t: any) => {
+      const d = new Date(t.date);
+      const key = `${t.recurring_rule_id}|${d.getFullYear()}-${d.getMonth()}`;
+      autoByRulePeriod.set(key, { id: t.id, amount: Number(t.amount) });
+    });
+
     const preview: PreviewRow[] = parsed.rows.map((r, i) => {
       const match = findMatchingRule(r, rules);
       const isExisting = existingSet.has(`${r.date}|${r.amount}|${r.bankSource}|${r.externalRef}`);
       const macroGroup: MacroGroup =
         match?.rule.macro_group ||
         (r.amount >= 0 ? 'Rendimentos' : 'Despesas');
+      const recurringRuleId = (match?.rule as any)?.recurring_rule_id || null;
+      let replacesAutoId: string | null = null;
+      let recurringExpectedAmount: number | null = null;
+      if (recurringRuleId) {
+        const d = new Date(r.date);
+        const found = autoByRulePeriod.get(`${recurringRuleId}|${d.getFullYear()}-${d.getMonth()}`);
+        if (found) { replacesAutoId = found.id; recurringExpectedAmount = found.amount; }
+        const rec = recurrings.find((x: any) => x.id === recurringRuleId);
+        if (rec && recurringExpectedAmount === null) recurringExpectedAmount = Number(rec.amount);
+      }
       return {
         ...r,
         rowId: i,
@@ -111,7 +137,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         macroGroup,
         categoryId: match?.rule.category_id || null,
         subcategoryId: match?.rule.subcategory_id || null,
-        recurringRuleId: (match?.rule as any)?.recurring_rule_id || null,
+        recurringRuleId,
+        replacesAutoId,
+        recurringExpectedAmount,
       };
     });
 
