@@ -250,7 +250,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
     const seen = new Set<string>();
     preview.forEach(r => {
-      const k = `${r.date}|${r.amount}|${r.bankSource}|${r.externalRef}`;
+      const k = `${r.date}|${Math.abs(r.amount).toFixed(2)}|${r.bankSource}|${r.externalRef}`;
       if (seen.has(k)) r.isDuplicate = true;
       seen.add(k);
     });
