@@ -31,6 +31,7 @@ interface PreviewRow extends ParsedBankRow {
   macroGroup: MacroGroup;
   categoryId: string | null;
   subcategoryId: string | null;
+  recurringRuleId: string | null;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
