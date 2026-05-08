@@ -369,8 +369,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         // Update recurring rule amount only when user chose 'file' resolution
         if (diverges && !useRuleAmount && row.recurringRuleId && !updatedRuleIds.has(row.recurringRuleId)) {
           const rec = recurrings.find((x: any) => x.id === row.recurringRuleId);
-          await supabase.from('recurring_rules').update({ amount: row.amount }).eq('id', row.recurringRuleId);
-          toast.info(`Valor da recorrência «${rec?.name || ''}» atualizado: ${formatCurrency(row.recurringExpectedAmount as number)} → ${formatCurrency(row.amount)}`);
+          await supabase.from('recurring_rules').update({ amount: absAmount }).eq('id', row.recurringRuleId);
+          toast.info(`Valor da recorrência «${rec?.name || ''}» atualizado: ${formatCurrency(row.recurringExpectedAmount as number)} → ${formatCurrency(absAmount)}`);
           updatedRuleIds.add(row.recurringRuleId);
         }
 
