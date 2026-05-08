@@ -66,11 +66,35 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
   const [recurrings, setRecurrings] = useState<any[]>([]);
   const [autoByRulePeriod, setAutoByRulePeriod] = useState<Map<string, { id: string; amount: number }>>(new Map());
 
+  const [cutoffMode, setCutoffMode] = useState<'last' | 'custom' | 'all'>('last');
+  const [customCutoffDate, setCustomCutoffDate] = useState<Date | null>(null);
+  const [lastUpdatedDate, setLastUpdatedDate] = useState<string | null>(null);
+  const [defaultDivergenceResolution, setDefaultDivergenceResolution] = useState<'file' | 'rule'>('file');
+
   useEffect(() => {
     fetchCategories(userId).then(setCategories);
     fetchImportRules(userId).then(setRules).catch(() => setRules([]));
     fetchRecurringRules(userId).then(setRecurrings).catch(() => setRecurrings([]));
+    supabase.from('profiles').select('movements_updated_until').eq('user_id', userId).maybeSingle()
+      .then(({ data }) => setLastUpdatedDate(data?.movements_updated_until || null));
   }, [userId]);
+
+  const effectiveCutoff = useMemo<string | null>(() => {
+    if (cutoffMode === 'all') return null;
+    if (cutoffMode === 'last') return lastUpdatedDate;
+    if (cutoffMode === 'custom' && customCutoffDate) {
+      const y = customCutoffDate.getFullYear();
+      const m = String(customCutoffDate.getMonth() + 1).padStart(2, '0');
+      const d = String(customCutoffDate.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return null;
+  }, [cutoffMode, customCutoffDate, lastUpdatedDate]);
+
+  const isBeforeCutoff = useCallback((date: string) => {
+    if (!effectiveCutoff) return false;
+    return date < effectiveCutoff;
+  }, [effectiveCutoff]);
 
   const accept = useMemo(() => BANK_OPTIONS.find(b => b.value === bank)?.accept || '.csv', [bank]);
 
