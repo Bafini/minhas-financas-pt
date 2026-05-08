@@ -56,10 +56,10 @@ interface PreviewRow extends ParsedBankRow {
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
-  { value: 'auto', label: 'Auto-detetar', accept: '.csv,.pdf' },
+  { value: 'auto', label: 'Auto-detetar', accept: '.csv,.xls,.xlsx' },
   { value: 'cgd', label: 'Caixa Geral de Depósitos (CSV)', accept: '.csv' },
   { value: 'revolut', label: 'Revolut (CSV)', accept: '.csv' },
-  { value: 'wizink', label: 'Wizink (PDF) — em breve', accept: '.pdf' },
+  { value: 'wizink', label: 'Wizink (XLS)', accept: '.xls,.xlsx' },
   { value: 'manual', label: 'Formato genérico (CSV)', accept: '.csv' },
 ];
 
