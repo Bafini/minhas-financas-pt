@@ -1,0 +1,1 @@
+ALTER TABLE public.import_rules ADD COLUMN IF NOT EXISTS recurring_rule_id UUID;
