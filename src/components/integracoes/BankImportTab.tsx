@@ -328,6 +328,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                 <TableHead>Grupo</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Subcategoria</TableHead>
+                <TableHead>Recorrente</TableHead>
                 <TableHead className="text-center">Ignorar</TableHead>
                 <TableHead></TableHead>
               </TableRow>
