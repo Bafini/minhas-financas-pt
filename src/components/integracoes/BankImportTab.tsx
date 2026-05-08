@@ -584,19 +584,22 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         value={row.recurringRuleId || '__none__'}
                         onValueChange={(v) => {
                           if (v === '__none__') {
-                            updateRow(row.rowId, { recurringRuleId: null, replacesAutoId: null, recurringExpectedAmount: null });
+                            updateRow(row.rowId, { recurringRuleId: null, replacesAutoId: null, recurringExpectedAmount: null, divergenceResolution: null });
                           } else {
                             const rec = recurrings.find((x: any) => x.id === v);
                             if (rec) {
                               const d = new Date(row.date);
                               const found = autoByRulePeriod.get(`${v}|${d.getFullYear()}-${d.getMonth()}`);
+                              const expected = found ? found.amount : Number(rec.amount);
+                              const diverges = Math.abs(expected - row.amount) > 0.005;
                               updateRow(row.rowId, {
                                 recurringRuleId: v,
                                 categoryId: rec.category_id,
                                 subcategoryId: rec.subcategory_id,
                                 macroGroup: rec.macro_group,
                                 replacesAutoId: found?.id || null,
-                                recurringExpectedAmount: found ? found.amount : Number(rec.amount),
+                                recurringExpectedAmount: expected,
+                                divergenceResolution: diverges ? defaultDivergenceResolution : null,
                               });
                             }
                           }
