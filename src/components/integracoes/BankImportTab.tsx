@@ -579,6 +579,35 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         {counts.skippedByDate > 0 && <Badge className="bg-muted text-muted-foreground border-0">{counts.skippedByDate} antes do corte</Badge>}
       </div>
 
+      {previewBankSource && (
+        <Card className="glass-surface">
+          <CardContent className="py-3 space-y-2">
+            <div className="text-xs text-muted-foreground">
+              Últimos 5 importados de <span className="text-foreground font-medium">{BANK_OPTIONS.find(b => b.value === previewBankSource)?.label || previewBankSource}</span>
+            </div>
+            {lastImported.length === 0 ? (
+              <div className="text-xs text-muted-foreground italic">Sem movimentos importados deste banco ainda.</div>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {lastImported.map(t => {
+                  const cat = categories.find((c: any) => c.id === t.category_id);
+                  return (
+                    <div key={t.id} className="flex items-center gap-3 py-1 text-xs">
+                      <span className="tabular-nums text-muted-foreground w-20">{formatDate(t.date, 'DD/MM/YYYY')}</span>
+                      <span className="flex-1 truncate text-foreground">{t.notes || '—'}</span>
+                      <span className="text-muted-foreground w-32 truncate text-right">{cat?.name || ''}</span>
+                      <span className={cn('financial-value tabular-nums w-24 text-right', t.macro_group === 'Rendimentos' ? 'text-income' : 'text-expense')}>
+                        {formatCurrency(Math.abs(Number(t.amount)))}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="glass-surface overflow-hidden">
         <div className="max-h-[600px] overflow-auto">
           <Table>
