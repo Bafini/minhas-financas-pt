@@ -550,6 +550,16 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                             </Select>
                           </div>
                         )}
+                        {row.categoryId && !row.matchedRuleId && (
+                          <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer" title="Ao aprender esta regra, exigir também o valor exacto desta linha">
+                            <Checkbox
+                              checked={row.matchExactAmount}
+                              onCheckedChange={(v) => updateRow(row.rowId, { matchExactAmount: !!v })}
+                              className="h-3 w-3"
+                            />
+                            valor exacto
+                          </label>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className={cn('text-right tabular-nums text-xs', row.amount >= 0 ? 'text-income' : 'text-expense')}>
