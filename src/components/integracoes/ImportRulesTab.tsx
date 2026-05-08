@@ -100,6 +100,7 @@ const ImportRulesTab: React.FC<Props> = ({ userId }) => {
                 <TableHead>Padrão</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Subcategoria</TableHead>
+                <TableHead>Recorrente</TableHead>
                 <TableHead className="text-right">Usos</TableHead>
                 <TableHead className="text-center">Ativa</TableHead>
                 <TableHead></TableHead>
