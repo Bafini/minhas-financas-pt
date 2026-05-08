@@ -59,6 +59,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
   const [ignoreDialog, setIgnoreDialog] = useState<{ open: boolean; rowId: number | null; pattern: string }>({ open: false, rowId: null, pattern: '' });
 
   const [recurrings, setRecurrings] = useState<any[]>([]);
+  const [autoByRulePeriod, setAutoByRulePeriod] = useState<Map<string, { id: string; amount: number }>>(new Map());
 
   useEffect(() => {
     fetchCategories(userId).then(setCategories);
