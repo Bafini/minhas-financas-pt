@@ -1,46 +1,38 @@
 ## Objetivo
 
-No separador "Importar Banco", durante o **preview** das linhas a importar, mostrar os **últimos 5 movimentos já importados** desse banco — para o utilizador perceber até onde já tinha chegado.
+Cada banco passa a ter a sua própria "data da última atualização". Ao importar um ficheiro, essa data é actualizada com o **último movimento importado desse banco**, em vez de uma única data global no perfil.
 
-## Onde aparece
+## Comportamento
 
-Painel compacto **só no `step === 'preview'`**, posicionado acima da tabela de linhas a importar e abaixo do resumo (badges de "X a importar / Y duplicados").
+- No ecrã "Importar Banco", a opção **"Última atualização"** mostra a data específica do banco selecionado (CGD, Revolut, Wizink, manual). Se o utilizador mudar o banco no dropdown, a data mostrada actualiza.
+- Quando "Auto-detetar" estiver selecionado: enquanto o ficheiro não é analisado, mostra "—". Após análise (preview), passa a mostrar a data do banco detectado.
+- Ao concluir uma importação, só é actualizada a data **do banco desse ficheiro** (não a global). Se a data mais recente importada for posterior à guardada para esse banco, sobrepõe.
+- A data global existente (`profiles.movements_updated_until`) deixa de ser usada por este ecrã, mas mantém-se na BD para não quebrar nada que possa lê-la noutro lado.
 
-Quando o banco foi importado em modo "auto", usa o `bankSource` resultante (já presente em `parsed.bankSource`) para filtrar.
+## Alterações técnicas
 
-## Conteúdo do painel
+### Base de dados (migration)
 
-Cabeçalho colapsável (aberto por defeito): "Últimos 5 importados de {Banco}".
+Nova tabela `bank_update_dates`:
 
-Lista compacta de até 5 linhas:
+- `id uuid pk`
+- `user_id uuid not null`
+- `bank_source text not null` (`cgd` | `revolut` | `wizink` | `manual`)
+- `last_date date not null`
+- `updated_at timestamptz default now()`
+- UNIQUE (`user_id`, `bank_source`)
+- RLS no mesmo padrão das outras tabelas (próprio utilizador + parceria com `get_partner_id` / `get_partner_permission` para INSERT/UPDATE/DELETE; SELECT também ao parceiro).
 
-```
-DD/MM/AAAA   Descrição truncada (~40 chars)   Categoria   12,34 €
-```
+### Frontend (`src/components/integracoes/BankImportTab.tsx`)
 
-- Data tabular-nums.
-- Valor com cor `text-income` / `text-expense` segundo `macro_group`, classe `financial-value` para Privacy Mode.
-- Categoria em `text-muted-foreground` (resolvida via mapa `categories` já carregado).
+- Substituir o estado `lastUpdatedDate: string | null` por `bankDates: Record<BankSource, string | null>` carregado uma vez em `useEffect` via `select('bank_source, last_date').eq('user_id', userId)`.
+- Adicionar `currentBank` derivado: se `bank !== 'auto'` → `bank`; senão `previewBankSource` (quando já houve parse); caso contrário `null`.
+- O label "Última atualização (DD/MM/AAAA)" usa `bankDates[currentBank]`. Se `currentBank` for `null`, mostra "(seleciona o banco)".
+- `effectiveCutoff` passa a depender de `bankDates[currentBank]` em vez de `lastUpdatedDate`.
+- No fim de `handleImport`, em vez de fazer `update` em `profiles.movements_updated_until`, fazer `upsert` em `bank_update_dates` com `{ user_id, bank_source: detectedBank, last_date: maxImportedDate }` (onConflict `user_id,bank_source`), só se `maxImportedDate` for posterior ao actual. Actualizar o estado local `bankDates`.
+- Após `handleParse`, se `bank === 'auto'`, refrescar o label com `bankDates[parsed.bankSource]`.
 
-Estado vazio: "Sem movimentos importados deste banco ainda."
+### Sem alterações
 
-## Dados
-
-Carregamento feito uma vez no início do preview (junto com as queries já existentes em `loadPreview`):
-
-```ts
-supabase.from('transactions')
-  .select('id, date, amount, notes, macro_group, category_id')
-  .eq('user_id', userId)
-  .eq('bank_source', parsed.bankSource)
-  .order('date', { ascending: false })
-  .order('created_at', { ascending: false })
-  .limit(5);
-```
-
-Resultado guardado em `useState<LastImported[]>` e renderizado no painel. Não precisa de count nem de refresh — quando o utilizador volta a abrir o preview depois de importar, é re-fetched naturalmente.
-
-## Sem alterações
-
-- Não toca em parsers, regras, lógica de inserção nem dedup.
-- Sem migrations, sem ficheiros novos — tudo dentro de `BankImportTab.tsx`.
+- Parsers, regras de importação, dedup, lógica de inserção, painel "últimos 5 importados".
+- `profiles.movements_updated_until` mantém-se na BD (não removido).

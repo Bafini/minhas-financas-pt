@@ -50,6 +50,30 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_update_dates: {
+        Row: {
+          bank_source: string
+          id: string
+          last_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_source: string
+          id?: string
+          last_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_source?: string
+          id?: string
+          last_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       budgets: {
         Row: {
           amount: number
