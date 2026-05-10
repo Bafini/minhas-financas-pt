@@ -531,7 +531,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="last" id="cut-last" />
                   <Label htmlFor="cut-last" className="text-sm font-normal cursor-pointer">
-                    Última atualização {lastUpdatedDate ? `(${formatDate(lastUpdatedDate, 'DD/MM/YYYY')})` : '(sem registo)'}
+                    Última atualização {currentBank ? (lastUpdatedDate ? `(${formatDate(lastUpdatedDate, 'DD/MM/YYYY')})` : '(sem registo)') : '(seleciona o banco)'}
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">
