@@ -43,8 +43,11 @@ const MovimentosPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [macroGroup, setMacroGroup] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState<string>('');
+  const [filterYear, setFilterYear] = useState<string>('');
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const [filterDayStart, setFilterDayStart] = useState<string>('');
+  const [filterDayEnd, setFilterDayEnd] = useState<string>('');
 
   // Sheet
   const [editTx, setEditTx] = useState<TransactionRow | null>(null);
