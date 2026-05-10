@@ -91,9 +91,20 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     fetchCategories(userId).then(setCategories);
     fetchImportRules(userId).then(setRules).catch(() => setRules([]));
     fetchRecurringRules(userId).then(setRecurrings).catch(() => setRecurrings([]));
-    supabase.from('profiles').select('movements_updated_until').eq('user_id', userId).maybeSingle()
-      .then(({ data }) => setLastUpdatedDate(data?.movements_updated_until || null));
+    supabase.from('bank_update_dates').select('bank_source, last_date').eq('user_id', userId)
+      .then(({ data }) => {
+        const map: Record<string, string | null> = {};
+        (data || []).forEach((r: any) => { map[r.bank_source] = r.last_date; });
+        setBankDates(map);
+      });
   }, [userId]);
+
+  const currentBank = useMemo<BankSource | null>(() => {
+    if (bank !== 'auto') return bank;
+    return previewBankSource;
+  }, [bank, previewBankSource]);
+
+  const lastUpdatedDate = currentBank ? (bankDates[currentBank] || null) : null;
 
   const effectiveCutoff = useMemo<string | null>(() => {
     if (cutoffMode === 'all') return null;
