@@ -420,8 +420,11 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     }
 
     if (maxImportedDate && (!lastUpdatedDate || maxImportedDate > lastUpdatedDate)) {
-      await supabase.from('profiles').update({ movements_updated_until: maxImportedDate }).eq('user_id', userId);
-      setLastUpdatedDate(maxImportedDate);
+      await supabase.from('bank_update_dates').upsert(
+        { user_id: userId, bank_source: detectedBank, last_date: maxImportedDate },
+        { onConflict: 'user_id,bank_source' }
+      );
+      setBankDates(prev => ({ ...prev, [detectedBank]: maxImportedDate }));
     }
 
     setResult({ imported, ignored, duplicates, errors, skippedByDate });
