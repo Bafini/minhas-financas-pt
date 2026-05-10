@@ -646,8 +646,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                 return (
                   <TableRow key={row.rowId} className={cn(
                     row.ignore && 'opacity-50',
-                    isBeforeCutoff(row.date) && 'opacity-50',
-                    (row.isDuplicate || row.isExisting) && 'bg-warning-muted/30'
+                    isBeforeCutoff(row.date) && 'opacity-60 bg-muted/40',
+                    (row.isDuplicate || row.isExisting) && 'bg-warning-muted/50 opacity-70',
+                    row.possibleDuplicateOf && !row.possibleDuplicateDismissed && !row.isExisting && !row.isDuplicate && 'bg-warning-muted/25'
                   )}>
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">{row.date}</TableCell>
                     <TableCell className="text-xs max-w-[260px]">
