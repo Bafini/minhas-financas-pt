@@ -43,8 +43,11 @@ const MovimentosPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [macroGroup, setMacroGroup] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [subcategoryId, setSubcategoryId] = useState<string>('');
+  const [filterYear, setFilterYear] = useState<string>('');
+  const [filterMonth, setFilterMonth] = useState<string>('');
+  const [filterDayStart, setFilterDayStart] = useState<string>('');
+  const [filterDayEnd, setFilterDayEnd] = useState<string>('');
 
   // Sheet
   const [editTx, setEditTx] = useState<TransactionRow | null>(null);
@@ -85,13 +88,33 @@ const MovimentosPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
+      // Compute date range from year/month/day filters
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+      const pad = (n: number) => String(n).padStart(2, '0');
+      if (filterYear) {
+        const y = Number(filterYear);
+        if (filterMonth) {
+          const m = Number(filterMonth);
+          const lastDay = new Date(y, m, 0).getDate();
+          const ds = filterDayStart ? Math.max(1, Math.min(lastDay, Number(filterDayStart))) : 1;
+          const de = filterDayEnd ? Math.max(1, Math.min(lastDay, Number(filterDayEnd))) : lastDay;
+          startDate = `${y}-${pad(m)}-${pad(ds)}`;
+          endDate = `${y}-${pad(m)}-${pad(de)}`;
+        } else {
+          startDate = `${y}-01-01`;
+          endDate = `${y}-12-31`;
+        }
+      }
+
       const [txResult, cats, fc, profileRes, evLabels] = await Promise.all([
         fetchTransactions(activeUserId, {
           search: search || undefined,
           macroGroup: (macroGroup as MacroGroup) || undefined,
           categoryId: categoryId || undefined,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
+          subcategoryId: subcategoryId || undefined,
+          startDate,
+          endDate,
           page,
           pageSize,
         }),
@@ -113,7 +136,7 @@ const MovimentosPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, activeUserId, search, macroGroup, categoryId, startDate, endDate, page]);
+  }, [user, activeUserId, search, macroGroup, categoryId, subcategoryId, filterYear, filterMonth, filterDayStart, filterDayEnd, page]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -346,8 +369,8 @@ const MovimentosPage: React.FC = () => {
 
       {/* Filters */}
       <Card className="glass-surface">
-        <CardContent className="pt-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <CardContent className="pt-6 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -357,22 +380,84 @@ const MovimentosPage: React.FC = () => {
                 className="pl-9"
               />
             </div>
-            <Select value={macroGroup} onValueChange={v => { setMacroGroup(v === 'all' ? '' : v); setPage(0); }}>
+            <Select value={macroGroup || 'all'} onValueChange={v => { setMacroGroup(v === 'all' ? '' : v); setPage(0); }}>
               <SelectTrigger><SelectValue placeholder="Grupo" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os grupos</SelectItem>
                 {MACRO_GROUPS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={categoryId} onValueChange={v => { setCategoryId(v === 'all' ? '' : v); setPage(0); }}>
+            <Select value={categoryId || 'all'} onValueChange={v => { setCategoryId(v === 'all' ? '' : v); setSubcategoryId(''); setPage(0); }}>
               <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as categorias</SelectItem>
                 {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setPage(0); }} />
-            <Input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(0); }} />
+            <Select value={subcategoryId || 'all'} onValueChange={v => { setSubcategoryId(v === 'all' ? '' : v); setPage(0); }}>
+              <SelectTrigger><SelectValue placeholder="Subcategoria" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as subcategorias</SelectItem>
+                {(categoryId
+                  ? (categories.find(c => c.id === categoryId)?.subcategories || [])
+                  : categories.flatMap(c => (c.subcategories || []).map((s: any) => ({ ...s, _cat: c.name })))
+                ).map((s: any) => (
+                  <SelectItem key={s.id} value={s.id}>{categoryId ? s.name : `${s._cat} › ${s.name}`}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Ano</Label>
+              <Select value={filterYear || 'all'} onValueChange={v => { setFilterYear(v === 'all' ? '' : v); setPage(0); }}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Mês</Label>
+              <Select value={filterMonth || 'all'} onValueChange={v => { setFilterMonth(v === 'all' ? '' : v); setPage(0); }} disabled={!filterYear}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((name, i) => (
+                    <SelectItem key={i+1} value={String(i+1)}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Dia início</Label>
+              <Input
+                type="number"
+                min={1}
+                max={31}
+                placeholder="1"
+                value={filterDayStart}
+                onChange={e => { setFilterDayStart(e.target.value); setPage(0); }}
+                disabled={!filterMonth}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Dia fim</Label>
+              <Input
+                type="number"
+                min={1}
+                max={31}
+                placeholder="31"
+                value={filterDayEnd}
+                onChange={e => { setFilterDayEnd(e.target.value); setPage(0); }}
+                disabled={!filterMonth}
+                className="h-9"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
