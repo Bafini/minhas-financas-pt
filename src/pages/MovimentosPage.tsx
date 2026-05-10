@@ -88,13 +88,33 @@ const MovimentosPage: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
+      // Compute date range from year/month/day filters
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+      const pad = (n: number) => String(n).padStart(2, '0');
+      if (filterYear) {
+        const y = Number(filterYear);
+        if (filterMonth) {
+          const m = Number(filterMonth);
+          const lastDay = new Date(y, m, 0).getDate();
+          const ds = filterDayStart ? Math.max(1, Math.min(lastDay, Number(filterDayStart))) : 1;
+          const de = filterDayEnd ? Math.max(1, Math.min(lastDay, Number(filterDayEnd))) : lastDay;
+          startDate = `${y}-${pad(m)}-${pad(ds)}`;
+          endDate = `${y}-${pad(m)}-${pad(de)}`;
+        } else {
+          startDate = `${y}-01-01`;
+          endDate = `${y}-12-31`;
+        }
+      }
+
       const [txResult, cats, fc, profileRes, evLabels] = await Promise.all([
         fetchTransactions(activeUserId, {
           search: search || undefined,
           macroGroup: (macroGroup as MacroGroup) || undefined,
           categoryId: categoryId || undefined,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
+          subcategoryId: subcategoryId || undefined,
+          startDate,
+          endDate,
           page,
           pageSize,
         }),
@@ -116,7 +136,7 @@ const MovimentosPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, activeUserId, search, macroGroup, categoryId, startDate, endDate, page]);
+  }, [user, activeUserId, search, macroGroup, categoryId, subcategoryId, filterYear, filterMonth, filterDayStart, filterDayEnd, page]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
