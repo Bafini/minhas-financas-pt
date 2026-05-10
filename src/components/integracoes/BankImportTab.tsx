@@ -82,7 +82,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
   const [cutoffMode, setCutoffMode] = useState<'last' | 'custom' | 'all'>('last');
   const [customCutoffDate, setCustomCutoffDate] = useState<Date | null>(null);
-  const [lastUpdatedDate, setLastUpdatedDate] = useState<string | null>(null);
+  const [bankDates, setBankDates] = useState<Record<string, string | null>>({});
   const [defaultDivergenceResolution, setDefaultDivergenceResolution] = useState<'file' | 'rule'>('file');
   const [previewBankSource, setPreviewBankSource] = useState<BankSource | null>(null);
   const [lastImported, setLastImported] = useState<Array<{ id: string; date: string; amount: number; notes: string | null; macro_group: MacroGroup; category_id: string | null }>>([]);
@@ -91,9 +91,20 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     fetchCategories(userId).then(setCategories);
     fetchImportRules(userId).then(setRules).catch(() => setRules([]));
     fetchRecurringRules(userId).then(setRecurrings).catch(() => setRecurrings([]));
-    supabase.from('profiles').select('movements_updated_until').eq('user_id', userId).maybeSingle()
-      .then(({ data }) => setLastUpdatedDate(data?.movements_updated_until || null));
+    supabase.from('bank_update_dates').select('bank_source, last_date').eq('user_id', userId)
+      .then(({ data }) => {
+        const map: Record<string, string | null> = {};
+        (data || []).forEach((r: any) => { map[r.bank_source] = r.last_date; });
+        setBankDates(map);
+      });
   }, [userId]);
+
+  const currentBank = useMemo<BankSource | null>(() => {
+    if (bank !== 'auto') return bank;
+    return previewBankSource;
+  }, [bank, previewBankSource]);
+
+  const lastUpdatedDate = currentBank ? (bankDates[currentBank] || null) : null;
 
   const effectiveCutoff = useMemo<string | null>(() => {
     if (cutoffMode === 'all') return null;
@@ -409,8 +420,11 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     }
 
     if (maxImportedDate && (!lastUpdatedDate || maxImportedDate > lastUpdatedDate)) {
-      await supabase.from('profiles').update({ movements_updated_until: maxImportedDate }).eq('user_id', userId);
-      setLastUpdatedDate(maxImportedDate);
+      await supabase.from('bank_update_dates').upsert(
+        { user_id: userId, bank_source: detectedBank, last_date: maxImportedDate },
+        { onConflict: 'user_id,bank_source' }
+      );
+      setBankDates(prev => ({ ...prev, [detectedBank]: maxImportedDate }));
     }
 
     setResult({ imported, ignored, duplicates, errors, skippedByDate });
@@ -517,7 +531,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="last" id="cut-last" />
                   <Label htmlFor="cut-last" className="text-sm font-normal cursor-pointer">
-                    Última atualização {lastUpdatedDate ? `(${formatDate(lastUpdatedDate, 'DD/MM/YYYY')})` : '(sem registo)'}
+                    Última atualização {currentBank ? (lastUpdatedDate ? `(${formatDate(lastUpdatedDate, 'DD/MM/YYYY')})` : '(sem registo)') : '(seleciona o banco)'}
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">
