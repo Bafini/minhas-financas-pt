@@ -82,7 +82,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
 
   const [cutoffMode, setCutoffMode] = useState<'last' | 'custom' | 'all'>('last');
   const [customCutoffDate, setCustomCutoffDate] = useState<Date | null>(null);
-  const [lastUpdatedDate, setLastUpdatedDate] = useState<string | null>(null);
+  const [bankDates, setBankDates] = useState<Record<string, string | null>>({});
   const [defaultDivergenceResolution, setDefaultDivergenceResolution] = useState<'file' | 'rule'>('file');
   const [previewBankSource, setPreviewBankSource] = useState<BankSource | null>(null);
   const [lastImported, setLastImported] = useState<Array<{ id: string; date: string; amount: number; notes: string | null; macro_group: MacroGroup; category_id: string | null }>>([]);
