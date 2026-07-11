@@ -1,38 +1,20 @@
-## Objetivo
+## Problema
 
-Cada banco passa a ter a sua própria "data da última atualização". Ao importar um ficheiro, essa data é actualizada com o **último movimento importado desse banco**, em vez de uma única data global no perfil.
+Quando o parser deteta um "duplicado" — seja duplicado dentro do próprio ficheiro (`isDuplicate`, mesmo dia+valor+banco+referência) ou já existente na BD (`isExisting`) — a linha fica sombreada e é excluída da importação sem forma de contestar. Isto falha nos casos legítimos em que existem mesmo dois movimentos iguais no mesmo dia (ex: dois cafés de 1,60 €, dois levantamentos de 20 €).
 
-## Comportamento
+Nota: para "possível duplicado" (mesmo valor ±3 dias, banco/ref diferente) já existe o botão "São diferentes" no popover. Este plano trata dos casos duros marcados como `duplicado` firme.
 
-- No ecrã "Importar Banco", a opção **"Última atualização"** mostra a data específica do banco selecionado (CGD, Revolut, Wizink, manual). Se o utilizador mudar o banco no dropdown, a data mostrada actualiza.
-- Quando "Auto-detetar" estiver selecionado: enquanto o ficheiro não é analisado, mostra "—". Após análise (preview), passa a mostrar a data do banco detectado.
-- Ao concluir uma importação, só é actualizada a data **do banco desse ficheiro** (não a global). Se a data mais recente importada for posterior à guardada para esse banco, sobrepõe.
-- A data global existente (`profiles.movements_updated_until`) deixa de ser usada por este ecrã, mas mantém-se na BD para não quebrar nada que possa lê-la noutro lado.
+## Alteração
 
-## Alterações técnicas
+Em `src/components/integracoes/BankImportTab.tsx`:
 
-### Base de dados (migration)
+1. Novo campo em `PreviewRow`: `forceImport: boolean` (default `false`).
+2. Nas linhas com `isDuplicate || isExisting`, mostrar ao lado do badge "duplicado" um pequeno botão/checkbox **"Importar mesmo assim"**. Ao ativar, define `forceImport = true`. O sombreado passa a mais ténue e o badge muda para "duplicado — forçado".
+3. `handleImport`: alterar o filtro de `toImport` para incluir linhas com `forceImport` mesmo que sejam duplicados:
+   ```
+   rows.filter(r => !r.ignore && !isBeforeCutoff(r.date) && (r.forceImport || (!r.isDuplicate && !r.isExisting)))
+   ```
+4. Ajustar `counts.importable`, `counts.duplicates` (contar `isDuplicate||isExisting` que NÃO estão em `forceImport`) para que o botão "Importar N movimentos" e as contagens no topo reflitam a decisão do utilizador.
+5. Para o caso `isExisting` forçado, a inserção segue o fluxo normal — a BD aceita, pois não há unique constraint em (date, amount, external_ref); fica um segundo movimento efetivo.
 
-Nova tabela `bank_update_dates`:
-
-- `id uuid pk`
-- `user_id uuid not null`
-- `bank_source text not null` (`cgd` | `revolut` | `wizink` | `manual`)
-- `last_date date not null`
-- `updated_at timestamptz default now()`
-- UNIQUE (`user_id`, `bank_source`)
-- RLS no mesmo padrão das outras tabelas (próprio utilizador + parceria com `get_partner_id` / `get_partner_permission` para INSERT/UPDATE/DELETE; SELECT também ao parceiro).
-
-### Frontend (`src/components/integracoes/BankImportTab.tsx`)
-
-- Substituir o estado `lastUpdatedDate: string | null` por `bankDates: Record<BankSource, string | null>` carregado uma vez em `useEffect` via `select('bank_source, last_date').eq('user_id', userId)`.
-- Adicionar `currentBank` derivado: se `bank !== 'auto'` → `bank`; senão `previewBankSource` (quando já houve parse); caso contrário `null`.
-- O label "Última atualização (DD/MM/AAAA)" usa `bankDates[currentBank]`. Se `currentBank` for `null`, mostra "(seleciona o banco)".
-- `effectiveCutoff` passa a depender de `bankDates[currentBank]` em vez de `lastUpdatedDate`.
-- No fim de `handleImport`, em vez de fazer `update` em `profiles.movements_updated_until`, fazer `upsert` em `bank_update_dates` com `{ user_id, bank_source: detectedBank, last_date: maxImportedDate }` (onConflict `user_id,bank_source`), só se `maxImportedDate` for posterior ao actual. Actualizar o estado local `bankDates`.
-- Após `handleParse`, se `bank === 'auto'`, refrescar o label com `bankDates[parsed.bankSource]`.
-
-### Sem alterações
-
-- Parsers, regras de importação, dedup, lógica de inserção, painel "últimos 5 importados".
-- `profiles.movements_updated_until` mantém-se na BD (não removido).
+Sem mudanças em parsers, migrations ou lógica de regras.

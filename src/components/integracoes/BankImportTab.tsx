@@ -53,6 +53,7 @@ interface PreviewRow extends ParsedBankRow {
   matchExactAmount: boolean;
   possibleDuplicateOf: PossibleDuplicate | null;
   possibleDuplicateDismissed: boolean;
+  forceImport: boolean;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
@@ -258,6 +259,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         matchExactAmount: match?.rule.match_field === 'description+amount',
         possibleDuplicateOf,
         possibleDuplicateDismissed: false,
+        forceImport: false,
       };
     });
 
@@ -342,13 +344,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       status: 'processing',
     }).select().single();
 
-    const toImport = rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date));
+    const toImport = rows.filter(r => !r.ignore && !isBeforeCutoff(r.date) && (r.forceImport || (!r.isDuplicate && !r.isExisting)));
     setImportTotal(toImport.length); setImportProgress(0);
     let imported = 0;
     let errors = 0;
     const ignored = rows.filter(r => r.ignore).length;
-    const duplicates = rows.filter(r => r.isDuplicate || r.isExisting).length;
-    const skippedByDate = rows.filter(r => isBeforeCutoff(r.date) && !r.ignore && !r.isDuplicate && !r.isExisting).length;
+    const duplicates = rows.filter(r => (r.isDuplicate || r.isExisting) && !r.forceImport).length;
+    const skippedByDate = rows.filter(r => isBeforeCutoff(r.date) && !r.ignore && !r.forceImport && !r.isDuplicate && !r.isExisting).length;
 
     const replacedAutoIds = new Set<string>();
     const updatedRuleIds = new Set<string>();
@@ -439,10 +441,10 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       auto: rows.filter(r => r.matchedRuleId && !r.matchedIgnore).length,
       pending: rows.filter(r => !r.ignore && !r.categoryId && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date)).length,
       ignored: rows.filter(r => r.ignore).length,
-      duplicates: rows.filter(r => r.isDuplicate || r.isExisting).length,
+      duplicates: rows.filter(r => (r.isDuplicate || r.isExisting) && !r.forceImport).length,
       possibleDuplicates: rows.filter(r => r.possibleDuplicateOf && !r.possibleDuplicateDismissed && !r.ignore && !r.isExisting).length,
       skippedByDate,
-      importable: rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date)).length,
+      importable: rows.filter(r => !r.ignore && !isBeforeCutoff(r.date) && (r.forceImport || (!r.isDuplicate && !r.isExisting))).length,
     };
   }, [rows, isBeforeCutoff]);
 
@@ -647,7 +649,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                   <TableRow key={row.rowId} className={cn(
                     row.ignore && 'opacity-50',
                     isBeforeCutoff(row.date) && 'opacity-60 bg-muted/40',
-                    (row.isDuplicate || row.isExisting) && 'bg-warning-muted/50 opacity-70',
+                    (row.isDuplicate || row.isExisting) && !row.forceImport && 'bg-warning-muted/50 opacity-70',
+                    (row.isDuplicate || row.isExisting) && row.forceImport && 'bg-warning-muted/20',
                     row.possibleDuplicateOf && !row.possibleDuplicateDismissed && !row.isExisting && !row.isDuplicate && 'bg-warning-muted/25'
                   )}>
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">{row.date}</TableCell>
@@ -660,7 +663,19 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                           </Badge>
                         )}
                         {(row.isDuplicate || row.isExisting) && (
-                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">duplicado</Badge>
+                          <div className="flex items-center gap-1">
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                              {row.forceImport ? 'duplicado — forçado' : 'duplicado'}
+                            </Badge>
+                            <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer" title="Importar mesmo sendo duplicado (ex: dois movimentos iguais no mesmo dia)">
+                              <Checkbox
+                                checked={row.forceImport}
+                                onCheckedChange={(v) => updateRow(row.rowId, { forceImport: !!v })}
+                                className="h-3 w-3"
+                              />
+                              importar mesmo assim
+                            </label>
+                          </div>
                         )}
                         {isBeforeCutoff(row.date) && (
                           <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">antes do corte</Badge>
