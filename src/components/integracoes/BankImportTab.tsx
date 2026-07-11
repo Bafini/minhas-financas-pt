@@ -53,7 +53,6 @@ interface PreviewRow extends ParsedBankRow {
   matchExactAmount: boolean;
   possibleDuplicateOf: PossibleDuplicate | null;
   possibleDuplicateDismissed: boolean;
-  forceImport: boolean;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
@@ -239,16 +238,17 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       }
       const diverges = recurringRuleId && recurringExpectedAmount !== null && Math.abs(recurringExpectedAmount - Math.abs(r.amount)) > 0.005;
       const possibleDuplicateOf = isExisting ? null : findPossibleDuplicate(r);
+      const matchedIgnore = match?.rule.rule_type === 'ignore' || false;
       return {
         ...r,
         rowId: i,
-        ignore: match?.rule.rule_type === 'ignore' || false,
+        ignore: matchedIgnore || isExisting || !!possibleDuplicateOf,
         isDuplicate: false,
         isExisting,
         matchedRuleId: match?.rule.id || null,
         matchedRuleField: match?.rule.match_field || null,
         matchedAuto: match?.rule.auto_learned || false,
-        matchedIgnore: match?.rule.rule_type === 'ignore' || false,
+        matchedIgnore,
         macroGroup,
         categoryId: match?.rule.category_id || null,
         subcategoryId: match?.rule.subcategory_id || null,
@@ -259,14 +259,16 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         matchExactAmount: match?.rule.match_field === 'description+amount',
         possibleDuplicateOf,
         possibleDuplicateDismissed: false,
-        forceImport: false,
       };
     });
 
     const seen = new Set<string>();
     preview.forEach(r => {
       const k = `${r.date}|${Math.abs(r.amount).toFixed(2)}|${r.bankSource}|${r.externalRef}`;
-      if (seen.has(k)) r.isDuplicate = true;
+      if (seen.has(k)) {
+        r.isDuplicate = true;
+        r.ignore = true;
+      }
       seen.add(k);
     });
 
@@ -333,12 +335,11 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
   };
 
   const isUnresolvedPossibleDuplicate = (row: PreviewRow) =>
-    !!row.possibleDuplicateOf && !row.possibleDuplicateDismissed && !row.forceImport && !row.isExisting && !row.isDuplicate;
+    !!row.possibleDuplicateOf && !row.possibleDuplicateDismissed && row.ignore && !row.isExisting && !row.isDuplicate;
 
   const canImportRow = (row: PreviewRow) =>
     !row.ignore &&
-    !isBeforeCutoff(row.date) &&
-    (row.forceImport || (!row.isDuplicate && !row.isExisting && !isUnresolvedPossibleDuplicate(row)));
+    !isBeforeCutoff(row.date);
 
   const handleImport = async () => {
     setStep('importing');
@@ -356,9 +357,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
     setImportTotal(toImport.length); setImportProgress(0);
     let imported = 0;
     let errors = 0;
-    const ignored = rows.filter(r => r.ignore).length;
-    const duplicates = rows.filter(r => (r.isDuplicate || r.isExisting) && !r.forceImport).length;
-    const skippedByDate = rows.filter(r => isBeforeCutoff(r.date) && !r.ignore && !r.forceImport && !r.isDuplicate && !r.isExisting).length;
+    const duplicates = rows.filter(r => r.ignore && (r.isDuplicate || r.isExisting || r.possibleDuplicateOf)).length;
+    const ignored = rows.filter(r => r.ignore && !r.isDuplicate && !r.isExisting && !r.possibleDuplicateOf).length;
+    const skippedByDate = rows.filter(r => isBeforeCutoff(r.date) && !r.ignore).length;
 
     const replacedAutoIds = new Set<string>();
     const updatedRuleIds = new Set<string>();
@@ -449,7 +450,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       auto: rows.filter(r => r.matchedRuleId && !r.matchedIgnore).length,
       pending: rows.filter(r => !r.ignore && !r.categoryId && !r.isDuplicate && !r.isExisting && !isUnresolvedPossibleDuplicate(r) && !isBeforeCutoff(r.date)).length,
       ignored: rows.filter(r => r.ignore).length,
-      duplicates: rows.filter(r => (r.isDuplicate || r.isExisting) && !r.forceImport).length,
+      duplicates: rows.filter(r => r.ignore && (r.isDuplicate || r.isExisting)).length,
       possibleDuplicates: rows.filter(r => isUnresolvedPossibleDuplicate(r) && !r.ignore).length,
       skippedByDate,
       importable: rows.filter(canImportRow).length,
