@@ -441,10 +441,10 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       auto: rows.filter(r => r.matchedRuleId && !r.matchedIgnore).length,
       pending: rows.filter(r => !r.ignore && !r.categoryId && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date)).length,
       ignored: rows.filter(r => r.ignore).length,
-      duplicates: rows.filter(r => r.isDuplicate || r.isExisting).length,
+      duplicates: rows.filter(r => (r.isDuplicate || r.isExisting) && !r.forceImport).length,
       possibleDuplicates: rows.filter(r => r.possibleDuplicateOf && !r.possibleDuplicateDismissed && !r.ignore && !r.isExisting).length,
       skippedByDate,
-      importable: rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date)).length,
+      importable: rows.filter(r => !r.ignore && !isBeforeCutoff(r.date) && (r.forceImport || (!r.isDuplicate && !r.isExisting))).length,
     };
   }, [rows, isBeforeCutoff]);
 
