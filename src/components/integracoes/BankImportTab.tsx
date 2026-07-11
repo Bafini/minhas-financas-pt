@@ -735,9 +735,10 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                                   <div>Diferença: {Math.abs(row.possibleDuplicateOf.daysDiff)} dia(s)</div>
                                 )}
                               </div>
-                              <div className="flex gap-2 pt-1">
+                              <div className="flex flex-wrap gap-2 pt-1">
                                 <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { ignore: true, possibleDuplicateDismissed: true })}>É o mesmo — ignorar</Button>
                                 <Button size="sm" variant="ghost" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { possibleDuplicateDismissed: true })}>São diferentes</Button>
+                                <Button size="sm" variant="secondary" className="h-7 text-xs w-full" onClick={() => updateRow(row.rowId, { forceImport: true, possibleDuplicateDismissed: true })}>Importar mesmo assim</Button>
                               </div>
                             </PopoverContent>
                           </Popover>
