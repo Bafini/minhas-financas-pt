@@ -53,6 +53,7 @@ interface PreviewRow extends ParsedBankRow {
   matchExactAmount: boolean;
   possibleDuplicateOf: PossibleDuplicate | null;
   possibleDuplicateDismissed: boolean;
+  forceImport: boolean;
 }
 
 const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string }[] = [
