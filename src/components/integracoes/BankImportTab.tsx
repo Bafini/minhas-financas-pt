@@ -451,7 +451,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       pending: rows.filter(r => !r.ignore && !r.categoryId && !r.isDuplicate && !r.isExisting && !isUnresolvedPossibleDuplicate(r) && !isBeforeCutoff(r.date)).length,
       ignored: rows.filter(r => r.ignore).length,
       duplicates: rows.filter(r => r.ignore && (r.isDuplicate || r.isExisting)).length,
-      possibleDuplicates: rows.filter(r => isUnresolvedPossibleDuplicate(r) && !r.ignore).length,
+      possibleDuplicates: rows.filter(isUnresolvedPossibleDuplicate).length,
       skippedByDate,
       importable: rows.filter(canImportRow).length,
     };
@@ -645,7 +645,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                 <TableHead>Categoria</TableHead>
                 <TableHead>Subcategoria</TableHead>
                 <TableHead>Recorrente</TableHead>
-                <TableHead className="text-center">Duplicado</TableHead>
+                <TableHead className="text-center">Estado</TableHead>
                 <TableHead className="text-center">Ignorar</TableHead>
                 <TableHead></TableHead>
               </TableRow>
@@ -659,8 +659,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                   <TableRow key={row.rowId} className={cn(
                     row.ignore && 'opacity-50',
                     isBeforeCutoff(row.date) && 'opacity-60 bg-muted/40',
-                    (row.isDuplicate || row.isExisting) && !row.forceImport && 'bg-warning-muted/50 opacity-70',
-                    (row.isDuplicate || row.isExisting) && row.forceImport && 'bg-warning-muted/20',
+                    (row.isDuplicate || row.isExisting) && row.ignore && 'bg-warning-muted/50 opacity-70',
+                    (row.isDuplicate || row.isExisting) && !row.ignore && 'bg-warning-muted/20',
                     row.possibleDuplicateOf && !row.possibleDuplicateDismissed && !row.isExisting && !row.isDuplicate && 'bg-warning-muted/25'
                   )}>
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">{row.date}</TableCell>
@@ -673,21 +673,9 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                           </Badge>
                         )}
                         {(row.isDuplicate || row.isExisting) && (
-                          <div className="flex items-center gap-1">
-                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
-                              {row.forceImport ? 'duplicado — forçado' : 'duplicado'}
-                            </Badge>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant={row.forceImport ? 'secondary' : 'outline'}
-                              className="h-5 px-2 text-[10px]"
-                              onClick={() => updateRow(row.rowId, { forceImport: !row.forceImport })}
-                              title="Importar mesmo sendo duplicado"
-                            >
-                              {row.forceImport ? '✓ a importar' : 'Importar mesmo assim'}
-                            </Button>
-                          </div>
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                            duplicado
+                          </Badge>
                         )}
                         {isBeforeCutoff(row.date) && (
                           <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">antes do corte</Badge>
@@ -746,9 +734,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                                 )}
                               </div>
                               <div className="flex flex-wrap gap-2 pt-1">
-                                <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { ignore: true, possibleDuplicateDismissed: true })}>É o mesmo — ignorar</Button>
-                                <Button size="sm" variant="ghost" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { possibleDuplicateDismissed: true })}>São diferentes</Button>
-                                <Button size="sm" variant="secondary" className="h-7 text-xs w-full" onClick={() => updateRow(row.rowId, { forceImport: true, possibleDuplicateDismissed: true })}>Importar mesmo assim</Button>
+                                <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { ignore: true, possibleDuplicateDismissed: true })}>É o mesmo — manter ignorado</Button>
+                                <Button size="sm" variant="secondary" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { ignore: false, possibleDuplicateDismissed: true })}>São diferentes — importar</Button>
                               </div>
                             </PopoverContent>
                           </Popover>
@@ -820,20 +807,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                       </Select>
                     </TableCell>
                     <TableCell className="text-center">
-                      {(row.isDuplicate || row.isExisting || isUnresolvedPossibleDuplicate(row) || row.forceImport) ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={row.forceImport ? 'secondary' : 'outline'}
-                          className="h-7 min-w-[132px] px-2 text-xs"
-                          onClick={() => updateRow(row.rowId, {
-                            forceImport: !row.forceImport,
-                            possibleDuplicateDismissed: row.possibleDuplicateOf ? !row.forceImport : row.possibleDuplicateDismissed,
-                          })}
-                          title="Importar mesmo sendo duplicado"
-                        >
-                          {row.forceImport ? '✓ a importar' : 'Importar mesmo assim'}
-                        </Button>
+                      {(row.isDuplicate || row.isExisting || row.possibleDuplicateOf) ? (
+                        <Badge className={cn(
+                          'text-xs border-0',
+                          row.ignore ? 'bg-warning-muted text-warning' : 'bg-income-muted text-income'
+                        )}>
+                          {row.ignore ? 'Ignorado' : 'Vai importar'}
+                        </Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
