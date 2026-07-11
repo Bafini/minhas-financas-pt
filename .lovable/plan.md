@@ -1,19 +1,22 @@
-Vou corrigir isto como um problema de UI: no teu screenshot aparece apenas um pequeno círculo ao lado de “valor exacto”, que é a checkbox errada — é a opção de regra por valor exato, não a opção de importar duplicado.
-
 Plano:
 
-1. Substituir a opção de duplicado por um controlo explícito e sempre visível na linha
-   - Para linhas com badge “duplicado”, mostrar um botão/toggle claro ao lado do badge: “Importar mesmo assim”.
-   - Quando ativo, mostrar “✓ a importar”.
+1. Tornar o controlo claro e funcional
+   - Renomear a coluna de “Ignorar” para algo explícito como “Importar”.
+   - Para duplicados, mostrar um checkbox/toggle marcado como ignorado por defeito, mas com texto claro ao lado: “Ignorar” quando marcado / “Importar” quando desmarcado.
+   - Evitar que o utilizador confunda esta checkbox com “valor exacto”.
 
-2. Garantir que a opção também aparece para possíveis duplicados
-   - Para “possível duplicado”, manter o popover, mas também deixar uma ação visível/óbvia para importar.
+2. Corrigir o estado visual da linha
+   - Duplicados marcados para ignorar ficam esbatidos e com badge “duplicado”.
+   - Quando o utilizador desmarca o controlo, a linha deixa de estar esbatida e passa a mostrar “vai importar”.
 
-3. Evitar confusão com “valor exacto”
-   - Separar visualmente o controlo “valor exacto” da ação de duplicado.
-   - O texto “valor exacto” continuará a ser apenas para regras automáticas, não para importação de duplicados.
+3. Corrigir a lógica de importação
+   - A importação passa a depender apenas de `ignore === false` e da data de corte.
+   - Duplicados deixam de estar bloqueados por flags antigas; se o utilizador desmarcar “Ignorar”, entram na contagem e no botão “Importar X movimentos”.
 
-4. Ajustar a contagem/importação
-   - Se marcares “Importar mesmo assim”, essa linha deixa de ser excluída por duplicado e entra na importação.
+4. Limpar a UI antiga
+   - Remover a coluna/estado extra que não aparece claramente no screenshot.
+   - Remover qualquer lógica remanescente de “Importar mesmo assim”/`forceImport` para não haver conflito.
 
-Depois de aprovares, implemento esta correção visual diretamente no ecrã de integrações.
+5. Validar o resultado
+   - Verificar que uma linha duplicada aparece ignorada por defeito.
+   - Verificar que ao desmarcar o controlo a contagem de movimentos a importar aumenta e a linha fica visualmente ativa.
