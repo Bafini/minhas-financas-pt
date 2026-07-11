@@ -667,14 +667,16 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                             <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
                               {row.forceImport ? 'duplicado — forçado' : 'duplicado'}
                             </Badge>
-                            <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer" title="Importar mesmo sendo duplicado (ex: dois movimentos iguais no mesmo dia)">
-                              <Checkbox
-                                checked={row.forceImport}
-                                onCheckedChange={(v) => updateRow(row.rowId, { forceImport: !!v })}
-                                className="h-3 w-3"
-                              />
-                              importar mesmo assim
-                            </label>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={row.forceImport ? 'secondary' : 'outline'}
+                              className="h-5 text-[10px] px-2"
+                              onClick={() => updateRow(row.rowId, { forceImport: !row.forceImport })}
+                              title="Importar mesmo sendo duplicado (ex: dois movimentos iguais no mesmo dia)"
+                            >
+                              {row.forceImport ? '✓ a importar' : 'importar mesmo assim'}
+                            </Button>
                           </div>
                         )}
                         {isBeforeCutoff(row.date) && (
@@ -733,9 +735,10 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                                   <div>Diferença: {Math.abs(row.possibleDuplicateOf.daysDiff)} dia(s)</div>
                                 )}
                               </div>
-                              <div className="flex gap-2 pt-1">
+                              <div className="flex flex-wrap gap-2 pt-1">
                                 <Button size="sm" variant="outline" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { ignore: true, possibleDuplicateDismissed: true })}>É o mesmo — ignorar</Button>
                                 <Button size="sm" variant="ghost" className="h-7 text-xs flex-1" onClick={() => updateRow(row.rowId, { possibleDuplicateDismissed: true })}>São diferentes</Button>
+                                <Button size="sm" variant="secondary" className="h-7 text-xs w-full" onClick={() => updateRow(row.rowId, { forceImport: true, possibleDuplicateDismissed: true })}>Importar mesmo assim</Button>
                               </div>
                             </PopoverContent>
                           </Popover>
