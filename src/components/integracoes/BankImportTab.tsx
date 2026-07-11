@@ -259,6 +259,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
         matchExactAmount: match?.rule.match_field === 'description+amount',
         possibleDuplicateOf,
         possibleDuplicateDismissed: false,
+        forceImport: false,
       };
     });
 
