@@ -649,7 +649,8 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                   <TableRow key={row.rowId} className={cn(
                     row.ignore && 'opacity-50',
                     isBeforeCutoff(row.date) && 'opacity-60 bg-muted/40',
-                    (row.isDuplicate || row.isExisting) && 'bg-warning-muted/50 opacity-70',
+                    (row.isDuplicate || row.isExisting) && !row.forceImport && 'bg-warning-muted/50 opacity-70',
+                    (row.isDuplicate || row.isExisting) && row.forceImport && 'bg-warning-muted/20',
                     row.possibleDuplicateOf && !row.possibleDuplicateDismissed && !row.isExisting && !row.isDuplicate && 'bg-warning-muted/25'
                   )}>
                     <TableCell className="text-xs tabular-nums whitespace-nowrap">{row.date}</TableCell>
@@ -662,7 +663,19 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                           </Badge>
                         )}
                         {(row.isDuplicate || row.isExisting) && (
-                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">duplicado</Badge>
+                          <div className="flex items-center gap-1">
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                              {row.forceImport ? 'duplicado — forçado' : 'duplicado'}
+                            </Badge>
+                            <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer" title="Importar mesmo sendo duplicado (ex: dois movimentos iguais no mesmo dia)">
+                              <Checkbox
+                                checked={row.forceImport}
+                                onCheckedChange={(v) => updateRow(row.rowId, { forceImport: !!v })}
+                                className="h-3 w-3"
+                              />
+                              importar mesmo assim
+                            </label>
+                          </div>
                         )}
                         {isBeforeCutoff(row.date) && (
                           <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">antes do corte</Badge>
