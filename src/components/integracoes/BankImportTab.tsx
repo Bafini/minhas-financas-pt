@@ -645,7 +645,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                 <TableHead>Categoria</TableHead>
                 <TableHead>Subcategoria</TableHead>
                 <TableHead>Recorrente</TableHead>
-                <TableHead className="text-center">Estado</TableHead>
+                <TableHead className="text-center">Duplicado</TableHead>
                 <TableHead className="text-center">Ignorar</TableHead>
                 <TableHead></TableHead>
               </TableRow>
@@ -808,18 +808,34 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                     </TableCell>
                     <TableCell className="text-center">
                       {(row.isDuplicate || row.isExisting || row.possibleDuplicateOf) ? (
-                        <Badge className={cn(
-                          'text-xs border-0',
-                          row.ignore ? 'bg-warning-muted text-warning' : 'bg-income-muted text-income'
-                        )}>
-                          {row.ignore ? 'Ignorado' : 'Vai importar'}
-                        </Badge>
+                        <div className="flex flex-col items-center gap-1">
+                          <Badge className={cn(
+                            'text-xs border-0',
+                            row.ignore ? 'bg-warning-muted text-warning' : 'bg-income-muted text-income'
+                          )}>
+                            {row.ignore ? 'Ignorado' : 'Vai importar'}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {row.ignore ? 'desmarca para importar' : 'marcado para importar'}
+                          </span>
+                        </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Checkbox checked={row.ignore} onCheckedChange={(v) => updateRow(row.rowId, { ignore: !!v })} />
+                      <label className="inline-flex min-w-[92px] cursor-pointer items-center justify-center gap-2 text-xs">
+                        <Checkbox
+                          checked={row.ignore}
+                          onCheckedChange={(v) => updateRow(row.rowId, {
+                            ignore: !!v,
+                            possibleDuplicateDismissed: row.possibleDuplicateOf ? !v : row.possibleDuplicateDismissed,
+                          })}
+                        />
+                        <span className={cn(row.ignore ? 'text-muted-foreground' : 'text-income')}>
+                          {row.ignore ? 'Ignorar' : 'Importar'}
+                        </span>
+                      </label>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
