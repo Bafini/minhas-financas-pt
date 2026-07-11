@@ -672,9 +672,21 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                           </Badge>
                         )}
                         {(row.isDuplicate || row.isExisting) && (
-                          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
-                            {row.forceImport ? 'duplicado — forçado' : 'duplicado'}
-                          </Badge>
+                          <div className="flex items-center gap-1">
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+                              {row.forceImport ? 'duplicado — forçado' : 'duplicado'}
+                            </Badge>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={row.forceImport ? 'secondary' : 'outline'}
+                              className="h-5 px-2 text-[10px]"
+                              onClick={() => updateRow(row.rowId, { forceImport: !row.forceImport })}
+                              title="Importar mesmo sendo duplicado"
+                            >
+                              {row.forceImport ? '✓ a importar' : 'Importar mesmo assim'}
+                            </Button>
+                          </div>
                         )}
                         {isBeforeCutoff(row.date) && (
                           <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">antes do corte</Badge>
