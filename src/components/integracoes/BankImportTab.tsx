@@ -667,14 +667,16 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                             <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
                               {row.forceImport ? 'duplicado — forçado' : 'duplicado'}
                             </Badge>
-                            <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer" title="Importar mesmo sendo duplicado (ex: dois movimentos iguais no mesmo dia)">
-                              <Checkbox
-                                checked={row.forceImport}
-                                onCheckedChange={(v) => updateRow(row.rowId, { forceImport: !!v })}
-                                className="h-3 w-3"
-                              />
-                              importar mesmo assim
-                            </label>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={row.forceImport ? 'secondary' : 'outline'}
+                              className="h-5 text-[10px] px-2"
+                              onClick={() => updateRow(row.rowId, { forceImport: !row.forceImport })}
+                              title="Importar mesmo sendo duplicado (ex: dois movimentos iguais no mesmo dia)"
+                            >
+                              {row.forceImport ? '✓ a importar' : 'importar mesmo assim'}
+                            </Button>
                           </div>
                         )}
                         {isBeforeCutoff(row.date) && (
