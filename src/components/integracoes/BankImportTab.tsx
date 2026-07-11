@@ -344,13 +344,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       status: 'processing',
     }).select().single();
 
-    const toImport = rows.filter(r => !r.ignore && !r.isDuplicate && !r.isExisting && !isBeforeCutoff(r.date));
+    const toImport = rows.filter(r => !r.ignore && !isBeforeCutoff(r.date) && (r.forceImport || (!r.isDuplicate && !r.isExisting)));
     setImportTotal(toImport.length); setImportProgress(0);
     let imported = 0;
     let errors = 0;
     const ignored = rows.filter(r => r.ignore).length;
-    const duplicates = rows.filter(r => r.isDuplicate || r.isExisting).length;
-    const skippedByDate = rows.filter(r => isBeforeCutoff(r.date) && !r.ignore && !r.isDuplicate && !r.isExisting).length;
+    const duplicates = rows.filter(r => (r.isDuplicate || r.isExisting) && !r.forceImport).length;
+    const skippedByDate = rows.filter(r => isBeforeCutoff(r.date) && !r.ignore && !r.forceImport && !r.isDuplicate && !r.isExisting).length;
 
     const replacedAutoIds = new Set<string>();
     const updatedRuleIds = new Set<string>();
