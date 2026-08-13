@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { fetchTransactions, fetchCategories, fetchEventLabels, TransactionRow } from '@/lib/queries';
-import { formatCurrency, formatDate } from '@/lib/formatters';
+import { formatCurrency } from '@/lib/formatters';
+import { useDateFormat } from '@/contexts/DateFormatContext';
 import { fetchFuelCards, recalculateFuelCardIncome, FuelCard, getCardsForSubcategory, hasCardsForSubcategory } from '@/lib/fuelCardHelpers';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/lib/auditLogger';
@@ -559,7 +560,7 @@ const MovimentosPage: React.FC = () => {
             ) : (
               transactions.map(tx => (
                 <TableRow key={tx.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(tx)}>
-                  <TableCell className="tabular-nums text-sm">{formatDate(tx.date)}</TableCell>
+                  <TableCell className="tabular-nums text-sm">{fd(tx.date)}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className={cn('text-xs', groupBadgeClass[tx.macro_group])}>
                       {tx.macro_group}

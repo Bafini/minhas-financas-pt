@@ -10,8 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Undo2, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { pt } from 'date-fns/locale';
+import { useDateFormat } from '@/contexts/DateFormatContext';
 
 interface AuditLog {
   id: string;
@@ -204,7 +203,7 @@ const LogsPage: React.FC = () => {
               logs.map(log => (
                 <TableRow key={log.id}>
                   <TableCell className="text-sm tabular-nums">
-                    {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: pt })}
+                    {fdTime(log.created_at)}
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className={actionColors[log.action] || ''}>
