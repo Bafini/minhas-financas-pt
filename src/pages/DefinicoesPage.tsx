@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDateFormat } from '@/contexts/DateFormatContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,7 @@ const DATE_FORMATS = [
 
 const DefinicoesPage: React.FC = () => {
   const { user, signOut, isDemo } = useAuth();
-  const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
+  const { dateFormat, setDateFormat } = useDateFormat();
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
@@ -44,13 +45,13 @@ const DefinicoesPage: React.FC = () => {
       .eq('user_id', user.id)
       .single()
       .then(({ data }) => {
-        if (data?.date_format) setDateFormat(data.date_format);
+        if (data?.date_format) setDateFormat(data.date_format as any);
         setLoading(false);
       });
   }, [user]);
 
   const handleDateFormatChange = async (value: string) => {
-    setDateFormat(value);
+    setDateFormat(value as any);
     const { error } = await supabase
       .from('profiles')
       .update({ date_format: value })
