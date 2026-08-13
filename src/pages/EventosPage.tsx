@@ -19,6 +19,7 @@ import { Tag, Plus, Search, MapPin, Trash2, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const EventosPage: React.FC = () => {
+  const { fd } = useDateFormat();
   const { user } = useAuth();
   const { activeUserId } = useActiveProfile();
   const [transactions, setTransactions] = useState<any[]>([]);

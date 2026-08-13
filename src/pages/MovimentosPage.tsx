@@ -31,6 +31,7 @@ const groupBadgeClass: Record<MacroGroup, string> = {
 };
 
 const MovimentosPage: React.FC = () => {
+  const { fd } = useDateFormat();
   const { user, isDemo } = useAuth();
   const { activeUserId, canWrite } = useActiveProfile();
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);

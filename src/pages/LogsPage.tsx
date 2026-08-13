@@ -62,6 +62,7 @@ function getDescription(log: AuditLog): string {
 const PAGE_SIZE = 50;
 
 const LogsPage: React.FC = () => {
+  const { fdTime } = useDateFormat();
   const { user } = useAuth();
   const { activeUserId } = useActiveProfile();
   const [logs, setLogs] = useState<AuditLog[]>([]);

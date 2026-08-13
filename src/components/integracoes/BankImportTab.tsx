@@ -67,6 +67,7 @@ const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string 
 interface BankImportTabProps { userId: string }
 
 const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
+  const { fd } = useDateFormat();
   const [bank, setBank] = useState<BankSource | 'auto'>('auto');
   const [file, setFile] = useState<File | null>(null);
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'done'>('upload');
