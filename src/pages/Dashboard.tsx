@@ -22,6 +22,9 @@ const Dashboard: React.FC = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [prevTransactions, setPrevTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [nameMaps, setNameMaps] = useState<{ categories: Record<string, string>; subcategories: Record<string, string> }>({ categories: {}, subcategories: {} });
+
+
 
   const [period, setPeriod] = useState<PeriodFilterState>({
     preset: 'YTD',
