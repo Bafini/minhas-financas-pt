@@ -10,6 +10,9 @@ import PeriodFilter, { PeriodFilterState, getDateRange } from '@/components/fina
 import { TrendingUp, TrendingDown, PiggyBank, Wallet, BarChart3, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import SankeyFlowChart from '@/components/finance/SankeyFlowChart';
+import { fetchCategories } from '@/lib/queries';
+
 
 const now = new Date();
 
