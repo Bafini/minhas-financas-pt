@@ -76,3 +76,124 @@ export function getMTDRange(year: number, month: number): PeriodRange {
     label: `MTD`,
   };
 }
+
+// ============ Sankey (fluxo financeiro) ============
+
+export type SankeyDetail = 'category' | 'subcategory';
+
+export interface SankeyTxn {
+  amount: number;
+  macro_group: MacroGroup;
+  category_id?: string | null;
+  subcategory_id?: string | null;
+  exclude_from_kpis?: boolean | null;
+}
+
+export interface SankeyNameMaps {
+  categories: Record<string, string>;
+  subcategories: Record<string, string>;
+}
+
+export interface SankeyNodeData {
+  name: string;
+  kind: 'income' | 'expense' | 'investment' | 'savings' | 'hub';
+}
+
+export interface SankeyLinkData {
+  source: number;
+  target: number;
+  value: number;
+}
+
+export interface SankeyData {
+  nodes: SankeyNodeData[];
+  links: SankeyLinkData[];
+  totalIncome: number;
+}
+
+const TOP_N = 8;
+
+function aggregate(
+  txns: SankeyTxn[],
+  group: MacroGroup,
+  detail: SankeyDetail,
+  maps: SankeyNameMaps
+): Array<{ name: string; value: number }> {
+  const acc: Record<string, number> = {};
+  txns
+    .filter((t) => t.macro_group === group)
+    .forEach((t) => {
+      let name: string;
+      if (detail === 'subcategory' && t.subcategory_id) {
+        name = maps.subcategories[t.subcategory_id] ?? 'Sem subcategoria';
+      } else if (t.category_id) {
+        name = maps.categories[t.category_id] ?? 'Sem categoria';
+      } else {
+        name = 'Sem categoria';
+      }
+      acc[name] = (acc[name] ?? 0) + Math.abs(Number(t.amount) || 0);
+    });
+
+  const sorted = Object.entries(acc)
+    .map(([name, value]) => ({ name, value }))
+    .filter((e) => e.value > 0)
+    .sort((a, b) => b.value - a.value);
+
+  if (sorted.length <= TOP_N) return sorted;
+  const top = sorted.slice(0, TOP_N);
+  const rest = sorted.slice(TOP_N).reduce((s, e) => s + e.value, 0);
+  if (rest > 0) top.push({ name: 'Outros', value: rest });
+  return top;
+}
+
+export function buildSankeyData(
+  transactions: SankeyTxn[],
+  maps: SankeyNameMaps,
+  detail: SankeyDetail = 'category'
+): SankeyData {
+  const txns = transactions.filter((t) => !t.exclude_from_kpis);
+
+  const incomes = aggregate(txns, 'Rendimentos', detail, maps);
+  const expenses = aggregate(txns, 'Despesas', detail, maps);
+  const investments = aggregate(txns, 'Investimentos', detail, maps);
+
+  const totalIncome = incomes.reduce((s, e) => s + e.value, 0);
+  const totalExpense = expenses.reduce((s, e) => s + e.value, 0);
+  const totalInvest = investments.reduce((s, e) => s + e.value, 0);
+  const savings = totalIncome - totalExpense - totalInvest;
+
+  const nodes: SankeyNodeData[] = [];
+  const links: SankeyLinkData[] = [];
+  const push = (n: SankeyNodeData) => nodes.push(n) - 1;
+
+  if (totalIncome <= 0) return { nodes: [], links: [], totalIncome: 0 };
+
+  const incomeIdx = incomes.map((e) => push({ name: e.name, kind: 'income' }));
+  const hubIdx = push({ name: 'Rendimentos', kind: 'hub' });
+  incomes.forEach((e, i) => links.push({ source: incomeIdx[i], target: hubIdx, value: e.value }));
+
+  if (totalExpense > 0) {
+    const idx = push({ name: 'Despesas', kind: 'expense' });
+    links.push({ source: hubIdx, target: idx, value: totalExpense });
+    expenses.forEach((e) => {
+      const leaf = push({ name: e.name, kind: 'expense' });
+      links.push({ source: idx, target: leaf, value: e.value });
+    });
+  }
+
+  if (totalInvest > 0) {
+    const idx = push({ name: 'Investimentos', kind: 'investment' });
+    links.push({ source: hubIdx, target: idx, value: totalInvest });
+    investments.forEach((e) => {
+      const leaf = push({ name: e.name, kind: 'investment' });
+      links.push({ source: idx, target: leaf, value: e.value });
+    });
+  }
+
+  if (savings > 0) {
+    const idx = push({ name: 'Poupança', kind: 'savings' });
+    links.push({ source: hubIdx, target: idx, value: savings });
+  }
+
+  return { nodes, links, totalIncome };
+}

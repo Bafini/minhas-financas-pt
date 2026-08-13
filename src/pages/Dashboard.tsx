@@ -10,6 +10,9 @@ import PeriodFilter, { PeriodFilterState, getDateRange } from '@/components/fina
 import { TrendingUp, TrendingDown, PiggyBank, Wallet, BarChart3, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import SankeyFlowChart from '@/components/finance/SankeyFlowChart';
+import { fetchCategories } from '@/lib/queries';
+
 
 const now = new Date();
 
@@ -19,6 +22,9 @@ const Dashboard: React.FC = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [prevTransactions, setPrevTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [nameMaps, setNameMaps] = useState<{ categories: Record<string, string>; subcategories: Record<string, string> }>({ categories: {}, subcategories: {} });
+
+
 
   const [period, setPeriod] = useState<PeriodFilterState>({
     preset: 'YTD',
@@ -42,6 +48,20 @@ const Dashboard: React.FC = () => {
       setLoading(false);
     });
   }, [user, activeUserId, range]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchCategories(activeUserId).then((cats: any[]) => {
+      const categories: Record<string, string> = {};
+      const subcategories: Record<string, string> = {};
+      (cats ?? []).forEach((c) => {
+        categories[c.id] = c.name;
+        (c.subcategories ?? []).forEach((s: any) => { subcategories[s.id] = s.name; });
+      });
+      setNameMaps({ categories, subcategories });
+    }).catch(() => {});
+  }, [user, activeUserId]);
+
 
   // Cap prev transactions to comparable period based on last data date
   const lastDataDate = useMemo(() => {
@@ -121,7 +141,10 @@ const Dashboard: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      <SankeyFlowChart transactions={transactions} maps={nameMaps} />
     </div>
+
   );
 };
 
