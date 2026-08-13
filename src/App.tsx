@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
 import { PrivacyProvider } from "@/contexts/PrivacyContext";
+import { DateFormatProvider } from "@/contexts/DateFormatContext";
 import AuthPage from "./pages/AuthPage";
 import AppLayout from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
@@ -43,6 +44,7 @@ const App = () => (
     <AuthProvider>
       <ActiveProfileProvider>
       <PrivacyProvider>
+      <DateFormatProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -69,6 +71,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </DateFormatProvider>
       </PrivacyProvider>
       </ActiveProfileProvider>
     </AuthProvider>
