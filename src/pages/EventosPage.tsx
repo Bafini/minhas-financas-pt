@@ -3,7 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAllRows } from '@/lib/supabaseHelpers';
-import { formatCurrency, formatDate } from '@/lib/formatters';
+import { formatCurrency } from '@/lib/formatters';
+import { useDateFormat } from '@/contexts/DateFormatContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import { Tag, Plus, Search, MapPin, Trash2, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const EventosPage: React.FC = () => {
+  const { fd } = useDateFormat();
   const { user } = useAuth();
   const { activeUserId } = useActiveProfile();
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -207,7 +209,7 @@ const EventosPage: React.FC = () => {
                 <>
                   <p className="text-lg font-bold financial-value">{formatCurrency(event.total)}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {event.count} transações · {formatDate(event.startDate!)} — {formatDate(event.endDate!)}
+                    {event.count} transações · {fd(event.startDate!)} — {fd(event.endDate!)}
                   </p>
                 </>
               ) : (
@@ -270,7 +272,7 @@ const EventosPage: React.FC = () => {
               <TableBody>
                 {eventTxs.map(tx => (
                   <TableRow key={tx.id}>
-                    <TableCell className="tabular-nums text-sm">{formatDate(tx.date)}</TableCell>
+                    <TableCell className="tabular-nums text-sm">{fd(tx.date)}</TableCell>
                     <TableCell className="text-sm">{tx.categories?.name || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{tx.subcategories?.name || '—'}</TableCell>
                     <TableCell className="text-right financial-value text-sm">{formatCurrency(Number(tx.amount))}</TableCell>

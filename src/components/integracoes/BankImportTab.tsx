@@ -18,7 +18,8 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Upload, FileText, CheckCircle2, Loader2, AlertTriangle, Ban, Sparkles, Wand2, CalendarIcon, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatCurrency, formatDate } from '@/lib/formatters';
+import { formatCurrency } from '@/lib/formatters';
+import { useDateFormat } from '@/contexts/DateFormatContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -66,6 +67,7 @@ const BANK_OPTIONS: { value: BankSource | 'auto'; label: string; accept: string 
 interface BankImportTabProps { userId: string }
 
 const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
+  const { fd } = useDateFormat();
   const [bank, setBank] = useState<BankSource | 'auto'>('auto');
   const [file, setFile] = useState<File | null>(null);
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'done'>('upload');
@@ -272,7 +274,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       seen.add(k);
     });
 
-    setRows(preview);
+    // Display order: most recent first (stable on ties, keeping the file order)
+    const sortedPreview = preview
+      .map((r, idx) => ({ r, idx }))
+      .sort((a, b) => (a.r.date === b.r.date ? a.idx - b.idx : (a.r.date < b.r.date ? 1 : -1)))
+      .map(x => x.r);
+
+    setRows(sortedPreview);
     setPreviewBankSource(parsed.bankSource);
     try {
       const { data: lastData } = await supabase
@@ -542,7 +550,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                 <div className="flex items-center gap-2">
                   <RadioGroupItem value="last" id="cut-last" />
                   <Label htmlFor="cut-last" className="text-sm font-normal cursor-pointer">
-                    Última atualização {currentBank ? (lastUpdatedDate ? `(${formatDate(lastUpdatedDate, 'DD/MM/YYYY')})` : '(sem registo)') : '(seleciona o banco)'}
+                    Última atualização {currentBank ? (lastUpdatedDate ? `(${fd(lastUpdatedDate)})` : '(sem registo)') : '(seleciona o banco)'}
                   </Label>
                 </div>
                 <div className="flex items-center gap-2">
@@ -618,7 +626,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                   const cat = categories.find((c: any) => c.id === t.category_id);
                   return (
                     <div key={t.id} className="flex items-center gap-3 py-1 text-xs">
-                      <span className="tabular-nums text-muted-foreground w-20">{formatDate(t.date, 'DD/MM/YYYY')}</span>
+                      <span className="tabular-nums text-muted-foreground w-20">{fd(t.date)}</span>
                       <span className="flex-1 truncate text-foreground">{t.notes || '—'}</span>
                       <span className="text-muted-foreground w-32 truncate text-right">{cat?.name || ''}</span>
                       <span className={cn('financial-value tabular-nums w-24 text-right', t.macro_group === 'Rendimentos' ? 'text-income' : 'text-expense')}>
@@ -663,7 +671,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                     (row.isDuplicate || row.isExisting) && !row.ignore && 'bg-warning-muted/20',
                     row.possibleDuplicateOf && !row.possibleDuplicateDismissed && !row.isExisting && !row.isDuplicate && 'bg-warning-muted/25'
                   )}>
-                    <TableCell className="text-xs tabular-nums whitespace-nowrap">{row.date}</TableCell>
+                    <TableCell className="text-xs tabular-nums whitespace-nowrap">{fd(row.date)}</TableCell>
                     <TableCell className="text-xs max-w-[260px]">
                       <div className="truncate" title={row.description}>{row.description}</div>
                       <div className="flex flex-wrap gap-1 mt-0.5">
@@ -723,7 +731,7 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                             <PopoverContent className="w-80 text-xs space-y-2" align="start">
                               <p className="font-medium">Já existe um movimento parecido:</p>
                               <div className="space-y-0.5 text-muted-foreground">
-                                <div><span className="text-foreground tabular-nums">{formatDate(row.possibleDuplicateOf.date, 'DD/MM/YYYY')}</span> · <span className="text-foreground tabular-nums">{formatCurrency(row.possibleDuplicateOf.amount)}</span></div>
+                                <div><span className="text-foreground tabular-nums">{fd(row.possibleDuplicateOf.date)}</span> · <span className="text-foreground tabular-nums">{formatCurrency(row.possibleDuplicateOf.amount)}</span></div>
                                 {row.possibleDuplicateOf.notes && <div className="truncate">«{row.possibleDuplicateOf.notes}»</div>}
                                 <div>
                                   {row.possibleDuplicateOf.categoryName && <span>Categoria: {row.possibleDuplicateOf.categoryName} · </span>}

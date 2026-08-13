@@ -4,6 +4,7 @@ import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchCategories } from '@/lib/queries';
 import { parseDateByFormat, toISODate, formatDate, DateFormatType } from '@/lib/formatters';
+import { useDateFormat } from '@/contexts/DateFormatContext';
 import { fetchAllRows } from '@/lib/supabaseHelpers';
 import Papa from 'papaparse';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -366,13 +367,7 @@ const ImportTab: React.FC<{ userId: string; dateFormat: DateFormatType }> = ({ u
 const IntegracoesPage: React.FC = () => {
   const { user } = useAuth();
   const { activeUserId } = useActiveProfile();
-  const [dateFormat, setDateFormat] = useState<DateFormatType>('DD/MM/YYYY');
-
-  useEffect(() => {
-    if (!user) return;
-    supabase.from('profiles').select('date_format').eq('user_id', activeUserId).single()
-      .then(({ data }) => { if (data?.date_format) setDateFormat(data.date_format as DateFormatType); });
-  }, [user, activeUserId]);
+  const { dateFormat } = useDateFormat();
 
   if (!user) return null;
 
