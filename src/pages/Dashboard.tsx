@@ -141,7 +141,10 @@ const Dashboard: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      <SankeyFlowChart transactions={transactions} maps={nameMaps} />
     </div>
+
   );
 };
 
