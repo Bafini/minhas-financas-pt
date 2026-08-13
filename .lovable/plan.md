@@ -1,22 +1,39 @@
-Plano:
+# Diagrama Sankey de fluxo financeiro
 
-1. Tornar o controlo claro e funcional
-   - Renomear a coluna de “Ignorar” para algo explícito como “Importar”.
-   - Para duplicados, mostrar um checkbox/toggle marcado como ignorado por defeito, mas com texto claro ao lado: “Ignorar” quando marcado / “Importar” quando desmarcado.
-   - Evitar que o utilizador confunda esta checkbox com “valor exacto”.
+Sim, dá para fazer. O `recharts` já instalado (2.15.4) inclui o componente `Sankey`, por isso não é preciso nenhuma biblioteca nova.
 
-2. Corrigir o estado visual da linha
-   - Duplicados marcados para ignorar ficam esbatidos e com badge “duplicado”.
-   - Quando o utilizador desmarca o controlo, a linha deixa de estar esbatida e passa a mostrar “vai importar”.
+## O que vai ser construído
 
-3. Corrigir a lógica de importação
-   - A importação passa a depender apenas de `ignore === false` e da data de corte.
-   - Duplicados deixam de estar bloqueados por flags antigas; se o utilizador desmarcar “Ignorar”, entram na contagem e no botão “Importar X movimentos”.
+Um novo cartão no **Dashboard**, por baixo do gráfico "Evolução Mensal", chamado **Fluxo Financeiro**, que mostra para onde vai o dinheiro no período selecionado (respeita o filtro de período já existente).
 
-4. Limpar a UI antiga
-   - Remover a coluna/estado extra que não aparece claramente no screenshot.
-   - Remover qualquer lógica remanescente de “Importar mesmo assim”/`forceImport` para não haver conflito.
+Estrutura do fluxo:
 
-5. Validar o resultado
-   - Verificar que uma linha duplicada aparece ignorada por defeito.
-   - Verificar que ao desmarcar o controlo a contagem de movimentos a importar aumenta e a linha fica visualmente ativa.
+```text
+Categoria Rend. A ─┐                 ┌─ Despesas ─┬─ Categoria Desp. 1
+Categoria Rend. B ─┼─ Rendimentos ───┼─ Investim. ─┼─ Categoria Inv. 1
+Categoria Rend. C ─┘                 └─ Poupança (saldo, se positivo)
+```
+
+- Lado esquerdo: categorias de Rendimentos (top 8, resto agrupado em "Outros").
+- Nó central: Rendimentos totais.
+- Lado direito: Despesas, Investimentos e Poupança; cada um ramifica nas suas categorias principais (top 8 + "Outros").
+- Cores por grupo usando os tokens semânticos existentes (`--income`, `--expense`, `--investment`).
+
+## Interação
+
+- Alternador no cabeçalho do cartão entre **Categorias** e **Subcategorias** (nível de detalhe do 3.º nível).
+- Tooltip com nome do fluxo, valor em EUR e peso percentual sobre os rendimentos.
+- Estado vazio quando não há dados no período.
+- Respeita o Modo Privacidade (valores dentro de `.financial-value` / wrapper recharts ficam desfocados).
+
+## Detalhes técnicos
+
+- Novo componente `src/components/finance/SankeyFlowChart.tsx` com props `transactions` (já carregadas no Dashboard) e `detail: 'category' | 'subcategory'`.
+- Novo helper em `src/lib/calculations.ts`: `buildSankeyData(transactions, categoriesMap, detail)` que devolve `{ nodes, links }`, ignora transações com `exclude_from_kpis`, agrega por categoria/subcategoria e faz o corte top-N + "Outros".
+- O Dashboard passa a carregar também o mapa de categorias/subcategorias (via `fetchCategories`) para resolver nomes.
+- Nós com valor zero são omitidos para evitar links inválidos no Sankey.
+- Renderização com `ResponsiveContainer` + `Sankey` do recharts, com `node` e `link` customizados para aplicar as cores dos tokens.
+
+## Fora de âmbito
+
+Não altera KPIs, nem as páginas de Grupos, nem a lógica de dados existente.
