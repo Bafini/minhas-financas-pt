@@ -274,7 +274,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
       seen.add(k);
     });
 
-    setRows(preview);
+    // Display order: most recent first (stable on ties, keeping the file order)
+    const sortedPreview = preview
+      .map((r, idx) => ({ r, idx }))
+      .sort((a, b) => (a.r.date === b.r.date ? a.idx - b.idx : (a.r.date < b.r.date ? 1 : -1)))
+      .map(x => x.r);
+
+    setRows(sortedPreview);
     setPreviewBankSource(parsed.bankSource);
     try {
       const { data: lastData } = await supabase
