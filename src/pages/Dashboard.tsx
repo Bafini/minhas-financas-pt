@@ -49,6 +49,20 @@ const Dashboard: React.FC = () => {
     });
   }, [user, activeUserId, range]);
 
+  useEffect(() => {
+    if (!user) return;
+    fetchCategories(activeUserId).then((cats: any[]) => {
+      const categories: Record<string, string> = {};
+      const subcategories: Record<string, string> = {};
+      (cats ?? []).forEach((c) => {
+        categories[c.id] = c.name;
+        (c.subcategories ?? []).forEach((s: any) => { subcategories[s.id] = s.name; });
+      });
+      setNameMaps({ categories, subcategories });
+    }).catch(() => {});
+  }, [user, activeUserId]);
+
+
   // Cap prev transactions to comparable period based on last data date
   const lastDataDate = useMemo(() => {
     if (transactions.length === 0) return null;
