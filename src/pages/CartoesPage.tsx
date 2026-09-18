@@ -88,7 +88,10 @@ const CartoesPage: React.FC = () => {
     .flatMap(c => (c.subcategories || []).map((s: any) => ({
       ...s,
       categoryName: c.name,
-    })));
+    })))
+    .sort((a: any, b: any) =>
+      a.categoryName.localeCompare(b.categoryName, 'pt') || a.name.localeCompare(b.name, 'pt')
+    );
 
   const openNew = () => {
     setEditCard(null);
