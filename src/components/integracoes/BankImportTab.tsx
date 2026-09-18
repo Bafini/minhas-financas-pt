@@ -808,9 +808,13 @@ const BankImportTab: React.FC<BankImportTabProps> = ({ userId }) => {
                         <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="—" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">— Nenhuma —</SelectItem>
-                          {recurrings.map((r: any) => (
-                            <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                          ))}
+                          {recurrings
+                            .filter((r: any) => r.is_active || r.id === row.recurringRuleId)
+                            .map((r: any) => (
+                              <SelectItem key={r.id} value={r.id}>
+                                {r.name}{!r.is_active ? ' (inativa)' : ''}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                     </TableCell>
