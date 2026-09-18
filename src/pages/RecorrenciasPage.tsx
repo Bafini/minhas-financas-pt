@@ -117,17 +117,62 @@ const RecorrenciasPage: React.FC = () => {
     loadData();
   };
 
+  const toISO = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const buildOccurrenceDates = (rule: any): string[] => {
+    const start = new Date(rule.start_date + 'T00:00:00');
+    const end = rule.end_date ? new Date(rule.end_date + 'T00:00:00') : new Date();
+    const day = Math.max(1, Math.min(31, rule.day_of_period || 1));
+    const dates: string[] = [];
+
+    if (rule.frequency === 'daily') {
+      const cur = new Date(start);
+      while (cur <= end) { dates.push(toISO(cur)); cur.setDate(cur.getDate() + 1); }
+      return dates;
+    }
+
+    if (rule.frequency === 'weekly') {
+      const targetDow = day >= 1 && day <= 7 ? day : 1; // 1=Seg..7=Dom
+      const cur = new Date(start);
+      const curDow = cur.getDay() === 0 ? 7 : cur.getDay();
+      cur.setDate(cur.getDate() + ((targetDow - curDow + 7) % 7));
+      while (cur <= end) { dates.push(toISO(cur)); cur.setDate(cur.getDate() + 7); }
+      return dates;
+    }
+
+    const stepMonths = rule.frequency === 'quarterly' ? 3 : rule.frequency === 'yearly' ? 12 : 1;
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cursor <= end) {
+      const lastDay = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+      const d = new Date(cursor.getFullYear(), cursor.getMonth(), Math.min(day, lastDay));
+      if (d >= start && d <= end) dates.push(toISO(d));
+      cursor.setMonth(cursor.getMonth() + stepMonths);
+    }
+    return dates;
+  };
+
   const generateOccurrences = async (rule: any) => {
     if (!user) return;
-    const start = new Date(rule.start_date);
-    const end = rule.end_date ? new Date(rule.end_date) : new Date();
-    const txs: any[] = [];
-    let current = new Date(start);
+    const dates = buildOccurrenceDates(rule);
+    if (dates.length === 0) { toast.info('Sem ocorrências a gerar'); return; }
 
-    while (current <= end) {
-      txs.push({
+    const { data: existing } = await supabase
+      .from('transactions')
+      .select('date')
+      .eq('recurring_rule_id', rule.id)
+      .in('date', dates);
+    const existingDates = new Set((existing || []).map((t: any) => t.date));
+
+    const txs = dates
+      .filter(d => !existingDates.has(d))
+      .map(d => ({
         user_id: activeUserId,
-        date: current.toISOString().split('T')[0],
+        date: d,
         amount: Number(rule.amount),
         notes: rule.name,
         category_id: rule.category_id,
@@ -135,20 +180,13 @@ const RecorrenciasPage: React.FC = () => {
         macro_group: rule.macro_group,
         is_recurring: true,
         recurring_rule_id: rule.id,
-      });
+      }));
 
-      if (rule.frequency === 'daily') current.setDate(current.getDate() + 1);
-      else if (rule.frequency === 'weekly') current.setDate(current.getDate() + 7);
-      else if (rule.frequency === 'monthly') current.setMonth(current.getMonth() + 1);
-      else if (rule.frequency === 'quarterly') current.setMonth(current.getMonth() + 3);
-      else if (rule.frequency === 'yearly') current.setFullYear(current.getFullYear() + 1);
-    }
+    if (txs.length === 0) { toast.info('Todas as ocorrências já existem'); return; }
 
-    if (txs.length > 0) {
-      const { error } = await supabase.from('transactions').insert(txs);
-      if (error) toast.error(error.message);
-      else toast.success(`${txs.length} ocorrências geradas`);
-    }
+    const { error } = await supabase.from('transactions').insert(txs);
+    if (error) toast.error(error.message);
+    else toast.success(`${txs.length} ocorrências geradas`);
   };
 
   const filteredCats = categories.filter(c => c.group_type === formGroup);
