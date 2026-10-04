@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { fetchAllRows } from '@/lib/supabaseHelpers';
@@ -26,6 +27,7 @@ const NONE = '__none__';
 
 const ComparacoesPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { activeUserId } = useActiveProfile();
   const [loading, setLoading] = useState(true);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
@@ -161,6 +163,15 @@ const ComparacoesPage: React.FC = () => {
     return categories.filter(c => c.group_type === selectedGroup);
   }, [categories, selectedGroup]);
 
+  const goToMonth = (idx: any) => {
+    if (idx == null || activeYears.length === 0) return;
+    const m = Number(idx) + 1;
+    const p = new URLSearchParams({ month: String(m), years: activeYears.join(','), group: selectedGroup });
+    if (selectedCategory !== 'all') p.set('category', selectedCategory);
+    if (ytdMode && m === now.getMonth() + 1) p.set('ytdDay', String(now.getDate()));
+    navigate(`/detalhe-mes?${p.toString()}`);
+  };
+
   const setYear = (idx: number, val: string) => {
     const newYears = [...years];
     newYears[idx] = val === NONE ? null : Number(val);
@@ -262,7 +273,7 @@ const ComparacoesPage: React.FC = () => {
             <CardContent>
               <div className="h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData}>
+                  <BarChart data={monthlyData} style={{ cursor: 'pointer' }} onClick={(e: any) => goToMonth(e?.activeTooltipIndex)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
                     <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
@@ -284,7 +295,7 @@ const ComparacoesPage: React.FC = () => {
             <CardContent>
               <div className="h-[350px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={cumulativeData}>
+                  <LineChart data={cumulativeData} style={{ cursor: 'pointer' }} onClick={(e: any) => goToMonth(e?.activeTooltipIndex)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
                     <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />

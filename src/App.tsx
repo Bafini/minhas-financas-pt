@@ -19,6 +19,7 @@ import EventosPage from "./pages/EventosPage";
 import DefinicoesPage from "./pages/DefinicoesPage";
 import { RendimentosPage, DespesasPage, InvestimentosPage } from "./pages/GroupPage";
 import ComparacoesPage from "./pages/ComparacoesPage";
+import MonthDetailPage from "./pages/MonthDetailPage";
 import CartoesPage from "./pages/CartoesPage";
 import LogsPage from "./pages/LogsPage";
 import NotFound from "./pages/NotFound";
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/movimentos" element={<MovimentosPage />} />
               <Route path="/comparacoes" element={<ComparacoesPage />} />
+              <Route path="/detalhe-mes" element={<MonthDetailPage />} />
               <Route path="/rendimentos" element={<RendimentosPage />} />
               <Route path="/despesas" element={<DespesasPage />} />
               <Route path="/investimentos" element={<InvestimentosPage />} />

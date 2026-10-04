@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveProfile } from '@/contexts/ActiveProfileContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +28,7 @@ const now = new Date();
 
 const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, variant }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { activeUserId } = useActiveProfile();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [prevTransactions, setPrevTransactions] = useState<any[]>([]);
@@ -219,7 +221,14 @@ const GroupPage: React.FC<GroupPageProps> = ({ macroGroup, title, icon: Icon, va
         <CardContent>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthly}>
+              <BarChart data={monthly} style={{ cursor: 'pointer' }} onClick={(e: any) => {
+                if (e?.activeTooltipIndex == null) return;
+                const p = new URLSearchParams({ month: String(Number(e.activeTooltipIndex) + 1), years: `${period.year},${period.compareYear}`, group: macroGroup });
+                const cat = tableFilterCatId || (selectedCategory !== 'all' ? selectedCategory : null);
+                if (cat && cat !== 'none') p.set('category', cat);
+                if (tableFilterSubcatId) p.set('subcategory', tableFilterSubcatId);
+                navigate(`/detalhe-mes?${p.toString()}`);
+              }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
