@@ -52,7 +52,7 @@ const MonthDetailPage: React.FC = () => {
         let q = s.from('transactions').select('*, categories(name), subcategories(name)')
           .eq('user_id', activeUserId).eq('is_duplicate', false).eq('exclude_from_kpis', false)
           .gte('date', `${y}-${pad(month)}-01`).lte('date', `${y}-${pad(month)}-${pad(end)}`);
-        if (group !== 'all') q = q.eq('macro_group', group);
+        if (group !== 'all') q = q.eq('macro_group', group as any);
         if (category !== 'all') q = q.eq('category_id', category);
         if (subcategory) q = q.eq('subcategory_id', subcategory);
         return q.order('id');
